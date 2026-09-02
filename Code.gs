@@ -113,7 +113,7 @@ const AI_DAILY_LIMIT = 300;
 // dashboard's account-editor checkboxes if you ever need a 6th one.
 const PERMISSION_KEYS = ["manageSettings", "manageFields", "manageCertificates", "manageAccounts"];
 
-const SHEET_NAME = "Registrations"; // <-- change to match your actual tab name (used as the default/first cycle's sheet)
+const SHEET_NAME = "Sheet1"; // <-- change to match your actual tab name (used as the default/first cycle's sheet)
 
 // The Sheet this backend reads/writes. SpreadsheetApp.getActiveSpreadsheet()
 // only works when a script is BOUND to a Sheet and running from inside its
@@ -121,7 +121,7 @@ const SHEET_NAME = "Registrations"; // <-- change to match your actual tab name 
 // actually runs), causing "Cannot read properties of null" errors. Using
 // openById() with an explicit ID works from any context, bound or not.
 // Get this ID from your Sheet's URL: .../spreadsheets/d/THIS_PART/edit
-const SHEET_ID = "1H3fl2szORZhW5JmT5R2OY-rX0RAxuysmmnBDhH85ZE0";
+const SHEET_ID = "1ivYG_pVo3rJqGcK8p0-1ZfLQEIPvgw6sr963qKvDUjg";
 function getSpreadsheet_() {
   return SpreadsheetApp.openById(SHEET_ID);
 }
