@@ -384,11 +384,14 @@
         camOff.textContent = "المتصفح ده مش بيدعم الكاميرا — استخدم الكتابة اليدوية تحت.";
         return;
       }
+      camOff.style.display = "flex";
+      camOff.textContent = "بيتم تشغيل الكاميرا...";
+
       navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: "environment" },
           width: { ideal: 1280 },
-          height: { ideal: 1280 },
+          height: { ideal: 720 },
         },
       })
         .then(stream => {
@@ -398,6 +401,13 @@
           ctx = canvas.getContext("2d", { willReadFrequently: true });
           scanning = true;
           rafId = requestAnimationFrame(scanLoop_);
+
+          // Hide the "starting camera..." message as soon as a real frame
+          // is available, instead of leaving it up for the full duration
+          // of the camera's hardware/auto-exposure warm-up.
+          video.addEventListener("loadeddata", () => {
+            camOff.style.display = "none";
+          }, { once: true });
 
           // Many Android rear cameras default to a fixed or slow focus via
           // getUserMedia and never sharpen up at the close range a QR code
