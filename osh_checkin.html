@@ -271,7 +271,7 @@
     <div class="foot">لو مفيش كاميرا أو الإذن اتمنع، استخدم خانة الكتابة اليدوية تحت المربع.</div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.js"></script>
+  <script src="jsQR.js"></script>
   <script>
     // Same backend as the registration form / dashboard — nothing new to
     // deploy, just point this at the same Apps Script Web App URL.
@@ -374,6 +374,11 @@
 
     // ==================== Camera + QR decode loop ====================
     function startCamera_() {
+      if (typeof jsQR === "undefined") {
+        camOff.style.display = "flex";
+        camOff.textContent = "مكتبة قراءة الـ QR ماتحمّلتش (مشكلة في النت) — رفرش الصفحة أو استخدم الكتابة اليدوية تحت.";
+        return;
+      }
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         camOff.style.display = "flex";
         camOff.textContent = "المتصفح ده مش بيدعم الكاميرا — استخدم الكتابة اليدوية تحت.";
