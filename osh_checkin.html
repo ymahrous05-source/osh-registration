@@ -379,7 +379,13 @@
         camOff.textContent = "المتصفح ده مش بيدعم الكاميرا — استخدم الكتابة اليدوية تحت.";
         return;
       }
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 1280 },
+        },
+      })
         .then(stream => {
           video.srcObject = stream;
           video.play();
@@ -387,6 +393,23 @@
           ctx = canvas.getContext("2d", { willReadFrequently: true });
           scanning = true;
           rafId = requestAnimationFrame(scanLoop_);
+
+          // Many Android rear cameras default to a fixed or slow focus via
+          // getUserMedia and never sharpen up at the close range a QR code
+          // is normally held at — the video looks "fine" but every frame is
+          // just soft enough that jsQR can't lock onto it. Ask for
+          // continuous autofocus when the device exposes that capability.
+          const track = stream.getVideoTracks()[0];
+          if (track && track.getCapabilities) {
+            try {
+              const caps = track.getCapabilities();
+              if (caps.focusMode && caps.focusMode.includes("continuous")) {
+                track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => {});
+              }
+            } catch (e) {
+              // getCapabilities/applyConstraints not supported on this browser — ignore.
+            }
+          }
         })
         .catch(() => {
           camOff.style.display = "flex";
