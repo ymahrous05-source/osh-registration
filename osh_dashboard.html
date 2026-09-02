@@ -1,0 +1,3756 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة تحكم المسجلين - أسرة صناع الحياة بالجامعات المصرية</title>
+  <meta name="theme-color" content="#08283f">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style"
+    href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap"
+    onload="this.onload=null;this.rel='stylesheet'">
+  <noscript>
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap">
+  </noscript>
+  <style>
+    :root {
+      --dys-bg-1: #08283f;
+      --dys-bg-2: #0e3c5c;
+      --dys-green: #1668a0;
+      --dys-green-dark: #0a4b73;
+      --dys-green-light: #8fc7e8;
+      --dys-navy: #0a4b73;
+      --dys-gold: #f5ab1e;
+      --dys-gold-dark: #c98a0b;
+      --dys-white: #ffffff;
+      --dys-text: #0d2438;
+      --dys-text-muted: #5b7186;
+      --dys-error: #c0392b;
+      --dys-error-bg: #fdecea;
+      --mono: 'JetBrains Mono', monospace;
+      --ease: cubic-bezier(.22, 1, .36, 1);
+      --card-bg: #ffffff;
+      --page-bg-1: #0e3c5c;
+      --page-bg-2: #08283f;
+      --surface-muted: #f7faf7;
+    }
+
+    [data-theme="dark"] {
+      --card-bg: #12241a;
+      --dys-text: #e8f0f5;
+      --dys-text-muted: #8ea3b3;
+      --surface-muted: #16301f;
+      --page-bg-1: #061c2c;
+      --page-bg-2: #060f0a;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      /* Defensive: the registration form had a bug where an off-screen
+         hidden element blew out the page's horizontal scroll area on
+         mobile — this stops that class of bug from ever affecting the
+         dashboard, regardless of what any element inside does. Scoped
+         scrollers like the data table (overflow-x: auto below) are
+         unaffected — this only blocks scrolling the whole PAGE sideways. */
+      overflow-x: hidden;
+    }
+
+    body {
+      font-family: 'Cairo', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(160deg, var(--page-bg-1) 0%, var(--page-bg-2) 65%);
+      color: var(--dys-text);
+      padding: 20px 14px 60px;
+      transition: background .3s ease, color .3s ease;
+    }
+
+    :focus-visible {
+      outline: 3px solid var(--dys-gold);
+      outline-offset: 2px;
+      border-radius: 6px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: .001ms !important;
+        transition-duration: .001ms !important;
+      }
+    }
+
+    .wrap {
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px;
+      color: #fff;
+      flex-wrap: wrap;
+    }
+
+    .header-titles h1 {
+      margin: 0 0 4px;
+      font-size: 21px;
+      font-weight: 800;
+    }
+
+    .header-titles p {
+      margin: 0;
+      font-size: 12.5px;
+      color: rgba(255, 255, 255, .68);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, .18);
+      background: rgba(255, 255, 255, .08);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background .2s ease;
+      flex: none;
+    }
+
+    .icon-btn:hover {
+      background: rgba(255, 255, 255, .16);
+    }
+
+    .icon-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* ---------- Login gate ---------- */
+    .gate {
+      max-width: 380px;
+      margin: 60px auto 0;
+      background: var(--card-bg);
+      border-radius: 22px;
+      padding: 34px 26px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .35);
+      text-align: center;
+      animation: cardIn .4s var(--ease) both;
+    }
+
+    @keyframes cardIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .gate .emblem {
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 14px;
+      border-radius: 50%;
+      background: #fff;
+      border: 3px solid #1668a0;
+      object-fit: contain;
+      padding: 8px;
+      box-sizing: border-box;
+      display: block;
+    }
+
+    .gate h2 {
+      margin: 0 0 6px;
+      font-size: 18px;
+      color: var(--dys-text);
+    }
+
+    .gate p {
+      margin: 0 0 18px;
+      font-size: 13px;
+      color: var(--dys-text-muted);
+    }
+
+    .gate .pw-shell {
+      position: relative;
+    }
+
+    .gate input {
+      width: 100%;
+      padding: 13px 44px 13px 14px;
+      border-radius: 12px;
+      border: 1.5px solid #e2e6e3;
+      font-family: 'Cairo', sans-serif;
+      font-size: 15px;
+      margin-bottom: 12px;
+      text-align: center;
+      background: #fafbfa;
+      color: var(--dys-text);
+    }
+
+    .gate input:focus {
+      border-color: var(--dys-green);
+      outline: none;
+    }
+
+    .gate .toggle-pw {
+      position: absolute;
+      inset-inline-end: 8px;
+      top: 8px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      padding: 6px;
+      color: var(--dys-text-muted);
+    }
+
+    .gate button.submit-btn {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--dys-green), var(--dys-green-dark));
+      color: #fff;
+      font-family: 'Cairo', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(60, 180, 74, .3);
+    }
+
+    .gate button.submit-btn:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    .gate .remember-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      font-size: 12px;
+      color: var(--dys-text-muted);
+      margin-bottom: 14px;
+    }
+
+    .gate .err {
+      color: var(--dys-error);
+      font-size: 12.5px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    .gate .err.show {
+      display: block;
+    }
+
+    /* ---------- Dashboard ---------- */
+    #dashboard {
+      display: none;
+    }
+
+    #dashboard.show {
+      display: block;
+      animation: cardIn .35s var(--ease) both;
+    }
+
+    .session-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: rgba(255, 255, 255, .75);
+      font-size: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .session-bar .logout-link {
+      background: none;
+      border: none;
+      color: var(--dys-gold);
+      font-family: 'Cairo', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 16px 18px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card-warn {
+      box-shadow: 0 8px 24px rgba(192, 57, 43, .18);
+      border: 1px solid rgba(192, 57, 43, .35);
+    }
+
+    .stat-card-warn .num {
+      color: #c0392b;
+    }
+
+    tr.dup-row td:first-child {
+      box-shadow: inset 3px 0 0 #c0392b;
+    }
+
+    .dup-only-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--dys-text-muted);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .dup-only-toggle input {
+      cursor: pointer;
+    }
+
+    .stat-card .num {
+      font-size: 25px;
+      font-weight: 800;
+      color: var(--dys-green-dark);
+    }
+
+    .stat-card .label {
+      font-size: 12px;
+      color: var(--dys-text-muted);
+      margin-top: 2px;
+    }
+
+    .stat-card .spark {
+      position: absolute;
+      inset-inline-end: 10px;
+      top: 12px;
+      opacity: .18;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+      background: rgba(255, 255, 255, .08);
+      padding: 4px;
+      border-radius: 12px;
+      width: fit-content;
+    }
+
+    .tabs button {
+      border: none;
+      background: transparent;
+      color: rgba(255, 255, 255, .75);
+      font-family: 'Cairo', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 8px 16px;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: background .2s ease, color .2s ease;
+    }
+
+    .tabs button.active {
+      background: var(--dys-gold);
+      color: #4a3200;
+    }
+
+    .panel {
+      display: none;
+    }
+
+    .panel.active {
+      display: block;
+      animation: cardIn .3s var(--ease) both;
+    }
+
+    /* ---------- Charts panel ---------- */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+    }
+
+    .chart-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 16px 18px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .15);
+    }
+
+    .chart-card h3 {
+      margin: 0 0 10px;
+      font-size: 13.5px;
+      color: var(--dys-navy);
+      font-weight: 800;
+    }
+
+    [data-theme="dark"] .chart-card h3 {
+      color: var(--dys-gold-light, #ffd166);
+    }
+
+    .chart-card canvas {
+      max-height: 240px;
+    }
+
+    .chart-empty {
+      font-size: 12.5px;
+      color: var(--dys-text-muted);
+      text-align: center;
+      padding: 30px 0;
+    }
+
+    /* ---------- Toolbar ---------- */
+    .toolbar {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 16px 18px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .15);
+      margin-bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .toolbar input,
+    .toolbar select {
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: 1.5px solid #e2e6e3;
+      font-family: 'Cairo', sans-serif;
+      font-size: 13px;
+      background: var(--surface-muted);
+      color: var(--dys-text);
+    }
+
+    .toolbar input[type="text"] {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .toolbar input[type="date"] {
+      min-width: 130px;
+    }
+
+    .toolbar button {
+      padding: 9px 16px;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Cairo', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: filter .2s ease;
+    }
+
+    .toolbar button:hover {
+      filter: brightness(1.05);
+    }
+
+    #exportBtn {
+      background: var(--dys-gold);
+      color: #4a3200;
+    }
+
+    #printBtn {
+      background: var(--dys-navy);
+      color: #fff;
+    }
+
+    #refreshBtn {
+      background: var(--surface-muted);
+      color: var(--dys-text);
+      border: 1.5px solid #e2e6e3 !important;
+    }
+
+    #privacyBtn {
+      background: var(--surface-muted);
+      color: var(--dys-text);
+      border: 1.5px solid #e2e6e3 !important;
+    }
+
+    #privacyBtn.active {
+      background: rgba(192, 57, 43, .12);
+      color: var(--dys-error);
+      border-color: rgba(192, 57, 43, .3) !important;
+    }
+
+    #clearFiltersBtn {
+      background: transparent;
+      color: var(--dys-error);
+      text-decoration: underline;
+      padding: 9px 6px;
+    }
+
+    .toolbar-row2 {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      width: 100%;
+      font-size: 12px;
+      color: var(--dys-text-muted);
+    }
+
+    .autorefresh-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ---------- Table ---------- */
+    .table-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .15);
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+      max-height: 62vh;
+      position: relative;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      background: var(--dys-bg-2);
+      color: #fff;
+      padding: 12px 14px;
+      text-align: right;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    thead th .th-inner {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    thead th .sort-arrow {
+      font-size: 10px;
+      opacity: .5;
+    }
+
+    thead th.sorted .sort-arrow {
+      opacity: 1;
+      color: var(--dys-gold);
+    }
+
+    thead th:hover {
+      background: #1c4d33;
+    }
+
+    tbody td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--surface-muted);
+      cursor: pointer;
+    }
+
+    tbody tr:hover {
+      background: var(--surface-muted);
+    }
+
+    tbody tr:nth-child(even) {
+      background: color-mix(in srgb, var(--surface-muted) 55%, transparent);
+    }
+
+    .masked {
+      font-family: var(--mono);
+      letter-spacing: .04em;
+      color: var(--dys-text-muted);
+    }
+
+    .empty-state,
+    .loading,
+    .error-state {
+      text-align: center;
+      padding: 50px 20px;
+      color: var(--dys-text-muted);
+    }
+
+    .error-state {
+      color: var(--dys-error);
+    }
+
+    .error-state button {
+      margin-top: 10px;
+      border: none;
+      background: var(--dys-error);
+      color: #fff;
+      font-family: 'Cairo', sans-serif;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 9px;
+      cursor: pointer;
+    }
+
+    .skeleton-row td {
+      padding: 12px 14px;
+    }
+
+    .skeleton-bar {
+      height: 12px;
+      border-radius: 6px;
+      background: linear-gradient(90deg, #eee 25%, #f5f5f5 37%, #eee 63%);
+      background-size: 400% 100%;
+      animation: skeleton 1.4s ease infinite;
+    }
+
+    @keyframes skeleton {
+      0% {
+        background-position: 100% 50%;
+      }
+
+      100% {
+        background-position: 0 50%;
+      }
+    }
+
+    /* ---------- Pagination ---------- */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-top: 1px solid var(--surface-muted);
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 12.5px;
+      color: var(--dys-text-muted);
+    }
+
+    .pagination .pg-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pagination button {
+      border: 1.5px solid #e2e6e3;
+      background: var(--card-bg);
+      color: var(--dys-text);
+      border-radius: 8px;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-family: 'Cairo', sans-serif;
+      font-size: 12.5px;
+    }
+
+    .pagination button:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+    }
+
+    .pagination select {
+      border: 1.5px solid #e2e6e3;
+      border-radius: 8px;
+      padding: 5px 8px;
+      background: var(--card-bg);
+      color: var(--dys-text);
+      font-family: 'Cairo', sans-serif;
+    }
+
+    /* ---------- Modal (row detail) ---------- */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 36, 23, .55);
+      backdrop-filter: blur(2px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+      animation: fadeBg .2s ease;
+    }
+
+    @keyframes fadeBg {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    .modal-box {
+      background: var(--card-bg);
+      border-radius: 18px;
+      max-width: 480px;
+      width: 100%;
+      max-height: 82vh;
+      overflow-y: auto;
+      padding: 22px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, .4);
+      animation: cardIn .25s var(--ease);
+    }
+
+    .modal-box h3 {
+      margin: 0 0 14px;
+      font-size: 16px;
+      color: var(--dys-navy);
+    }
+
+    [data-theme="dark"] .modal-box h3 {
+      color: var(--dys-gold-light, #ffd166);
+    }
+
+    .modal-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px dashed var(--surface-muted);
+      font-size: 13.5px;
+    }
+
+    .modal-row .k {
+      color: var(--dys-text-muted);
+      flex: 0 0 42%;
+    }
+
+    .modal-row .v {
+      font-weight: 700;
+      text-align: end;
+      word-break: break-word;
+    }
+
+    .modal-close {
+      width: 100%;
+      margin-top: 16px;
+      border: none;
+      background: var(--surface-muted);
+      color: var(--dys-text);
+      font-family: 'Cairo', sans-serif;
+      font-weight: 700;
+      padding: 11px;
+      border-radius: 11px;
+      cursor: pointer;
+    }
+
+    .modal-copy {
+      border: none;
+      background: rgba(60, 180, 74, .12);
+      color: var(--dys-green-dark);
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-inline-start: 6px;
+    }
+
+    /* ---------- Settings panel ---------- */
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    @media (max-width: 760px) {
+      .settings-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* On narrow phones, stop relying on flex-wrap math for these rows (native
+       date/time inputs and long button rows can refuse to shrink below their
+       own intrinsic width even with min-width set on the flex item) — just
+       force them to stack top-to-bottom instead, so nothing can ever overflow
+       sideways and get invisibly clipped by the page's overflow-x: hidden. */
+    @media (max-width: 480px) {
+      .settings-row2,
+      .cycle-row,
+      #formSwitcherBar>span {
+        flex-direction: column;
+        align-items: stretch !important;
+      }
+
+      .cycle-row select {
+        width: 100%;
+      }
+    }
+
+    .settings-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .15);
+      /* .settings-card is a grid item inside .settings-grid; grid items
+         default to min-width: auto, which refuses to shrink below the
+         card's intrinsic content width (long select options, buttons,
+         etc). On narrow phones that pushed the card wider than the
+         viewport, and since the page has overflow-x: hidden, the
+         overflowing part (left side, in this RTL layout) became
+         permanently unreachable — invisible with no way to scroll to it. */
+      min-width: 0;
+    }
+
+    .settings-card h3 {
+      margin: 0 0 4px;
+      font-size: 15px;
+      color: var(--dys-navy);
+    }
+
+    [data-theme="dark"] .settings-card h3 {
+      color: var(--dys-gold-light, #ffd166);
+    }
+
+    .settings-card .hint {
+      margin: 0 0 16px;
+      font-size: 12px;
+      color: var(--dys-text-muted);
+      line-height: 1.6;
+    }
+
+    .settings-field {
+      margin-bottom: 14px;
+    }
+
+    .settings-field label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--dys-text-muted);
+      margin-bottom: 6px;
+    }
+
+    .settings-field input[type="text"],
+    .settings-field input[type="datetime-local"] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1.5px solid #e2e6e3;
+      background: var(--surface-muted);
+      color: var(--dys-text);
+      font-family: 'Cairo', sans-serif;
+      font-size: 13.5px;
+    }
+
+    .settings-row2 {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .settings-row2>div {
+      flex: 1;
+      min-width: 160px;
+    }
+
+    .settings-btn {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-family: 'Cairo', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .settings-btn.primary {
+      background: var(--dys-green);
+      color: #fff;
+    }
+
+    .settings-btn.danger {
+      background: rgba(192, 57, 43, .12);
+      color: var(--dys-error);
+    }
+
+    .settings-btn.muted {
+      background: var(--surface-muted);
+      color: var(--dys-text);
+      border: 1.5px solid #e2e6e3;
+    }
+
+    .settings-btn:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
+    .settings-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .cycle-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .cycle-row select {
+      flex: 1;
+      min-width: 0;
+      padding: 9px 10px;
+      border-radius: 10px;
+      border: 1.5px solid #e2e6e3;
+      background: var(--surface-muted);
+      color: var(--dys-text);
+      font-family: 'Cairo', sans-serif;
+    }
+
+    .logo-preview-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .logo-preview {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--surface-muted);
+      border: 1.5px solid #e2e6e3;
+    }
+
+    .settings-note {
+      font-size: 12px;
+      color: var(--dys-text-muted);
+      margin-top: 8px;
+      line-height: 1.6;
+    }
+
+    .field-config-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 4px;
+      font-size: 13px;
+    }
+
+    /* Lets any of these tables scroll horizontally WITHIN their own card on a
+       narrow phone (e.g. the accounts table's action-button column) instead
+       of forcing the table — and the whole page — wider than the screen.
+       Deliberately a SEPARATE class from .table-scroll above (the main
+       registrations table), which also caps height/sticky-headers that
+       these small settings tables don't need. */
+    .mini-table-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .field-config-table th,
+    .field-config-table td {
+      padding: 8px 6px;
+      text-align: center;
+      border-bottom: 1px solid #e2e6e3;
+    }
+
+    .field-config-table th:first-child,
+    .field-config-table td:first-child {
+      text-align: right;
+    }
+
+    .field-config-table input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+    }
+
+    /* Inline permission checkboxes next to each account in "👥 حسابات
+       الدخول" — see renderAccountsTable in the script below. */
+    .perm-checks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 10px;
+      font-size: 11.5px;
+      text-align: right;
+    }
+
+    .perm-checks label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    .perm-checks input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+    }
+
+    .cf-condition-row td {
+      border-bottom: 1px solid #e2e6e3;
+      background: #f7f9f7;
+      padding: 8px 10px;
+    }
+
+    .cf-condition-panel {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 12.5px;
+    }
+
+    .cf-condition-panel select,
+    .cf-condition-panel input {
+      font-family: inherit;
+      font-size: 12.5px;
+      padding: 4px 8px;
+      border-radius: 8px;
+      border: 1px solid #dfe6e0;
+    }
+
+    .drag-handle {
+      cursor: grab;
+      color: #9fd8ab;
+      opacity: .7;
+      width: 24px;
+      user-select: none;
+    }
+
+    tr.draggable-row.dragging {
+      opacity: .4;
+    }
+
+    tr.draggable-row {
+      cursor: default;
+    }
+
+    .settings-note.ok {
+      color: var(--dys-green-dark);
+    }
+
+    .settings-note.err {
+      color: var(--dys-error);
+    }
+
+    /* toast */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      inset-inline-start: 50%;
+      transform: translateX(-50%);
+      background: var(--dys-bg-1);
+      color: #fff;
+      padding: 11px 20px;
+      border-radius: 12px;
+      font-size: 13px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s ease, transform .25s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-6px);
+    }
+
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+
+      body {
+        background: #fff !important;
+        color: #000 !important;
+        padding: 0;
+      }
+
+      .table-scroll {
+        max-height: none !important;
+        overflow: visible !important;
+      }
+
+      thead th {
+        position: static !important;
+        background: #eee !important;
+        color: #000 !important;
+      }
+    }
+
+    /* ---------- AI chat assistant ---------- */
+    .ai-chat-bubble {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--dys-green), #2d8f39);
+      color: #fff;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+      cursor: pointer;
+      z-index: 998;
+      border: none;
+      transition: transform .2s ease;
+    }
+
+    .ai-chat-bubble.visible {
+      display: flex;
+    }
+
+    .ai-chat-bubble:active {
+      transform: scale(.92);
+    }
+
+    .ai-chat-panel {
+      position: fixed;
+      bottom: 90px;
+      right: 20px;
+      width: min(360px, calc(100vw - 32px));
+      max-height: min(540px, calc(100vh - 130px));
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, .4);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      z-index: 999;
+      direction: rtl;
+      border: 1px solid rgba(60, 180, 74, .25);
+    }
+
+    .ai-chat-panel.open {
+      display: flex;
+      animation: aiPanelIn .2s ease both;
+    }
+
+    @keyframes aiPanelIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .ai-chat-header {
+      background: linear-gradient(135deg, var(--dys-navy), #1a1a4a);
+      color: #fff;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .ai-chat-header button {
+      background: none;
+      border: none;
+      color: #fff;
+      opacity: .8;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 2px 6px;
+    }
+
+    .ai-chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 13px;
+      background: #f6f9f6;
+      min-height: 120px;
+    }
+
+    .ai-msg {
+      max-width: 85%;
+      padding: 9px 12px;
+      border-radius: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .ai-msg.bot {
+      background: #fff;
+      border: 1px solid #e2e6e3;
+      color: #0d2438;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+
+    .ai-msg.user {
+      background: var(--dys-green);
+      color: #fff;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+
+    .ai-msg.typing {
+      color: #5b7186;
+      font-style: italic;
+    }
+
+    .ai-chat-quick {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 10px 14px 0;
+      background: #f6f9f6;
+    }
+
+    .ai-chat-quick button {
+      background: #fff;
+      border: 1px solid rgba(60, 180, 74, .35);
+      color: #0d2438;
+      font-size: 11.5px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-family: 'Cairo', sans-serif;
+    }
+
+    .ai-chat-input-row {
+      display: flex;
+      gap: 8px;
+      padding: 10px 12px;
+      background: #f6f9f6;
+      border-top: 1px solid #e2e6e3;
+    }
+
+    .ai-chat-input-row input {
+      flex: 1;
+      border: 1px solid #d5ddd6;
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 13px;
+      font-family: 'Cairo', sans-serif;
+      min-width: 0;
+    }
+
+    .ai-chat-input-row button {
+      background: var(--dys-green);
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      padding: 0 16px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Cairo', sans-serif;
+    }
+
+    .ai-chat-input-row button:disabled {
+      opacity: .6;
+      cursor: default;
+    }
+
+    @media (max-width: 400px) {
+      .ai-chat-bubble {
+        bottom: 14px;
+        right: 14px;
+        width: 52px;
+        height: 52px;
+        font-size: 22px;
+      }
+
+      .ai-chat-panel {
+        bottom: 78px;
+        right: 12px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- AI chat assistant — only shown once logged in (see completeLogin_/
+       doLogout). Its "brain" is only aggregate stats, never raw registrant
+       rows — see buildDashboardAiPrompt_ in Code.gs. -->
+  <button type="button" class="ai-chat-bubble" id="aiChatBubble" aria-label="مساعد الداشبورد">💬</button>
+  <div class="ai-chat-panel" id="aiChatPanel">
+    <div class="ai-chat-header">
+      <span>🤖 مساعد الداشبورد</span>
+      <button type="button" id="aiChatClose" aria-label="قفل">✕</button>
+    </div>
+    <div class="ai-chat-messages" id="aiChatMessages"></div>
+    <div class="ai-chat-quick" id="aiChatQuick"></div>
+    <div class="ai-chat-input-row">
+      <input type="text" id="aiChatInput" placeholder="اسأل عن البيانات أو استخدام الداشبورد...">
+      <button type="button" id="aiChatSend">إرسال</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <header class="no-print">
+      <div class="header-titles">
+        <h1>لوحة تحكم المسجلين</h1>
+        <p>Osar Sonaa Al-Hayah &middot; أسرة صناع الحياة بالجامعات المصرية</p>
+      </div>
+      <div class="header-actions" id="headerActions" style="display:none;">
+        <button type="button" class="icon-btn" id="themeToggle" title="الوضع الليلي">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="gate" id="gate">
+      <img class="emblem" alt="شعار أسرة صناع الحياة" src="data:image/png;base64,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">
+      <h2>دخول الأدمن</h2>
+      <p>ادخل بحساب جوجل بتاعك، أو بكلمة السر القديمة</p>
+
+      <div id="googleSignInBtn" style="display:flex; justify-content:center; margin:14px 0;"></div>
+      <div class="err" id="googlePendingNote" style="display:none; color:#c9a227; background:rgba(201,162,39,.12); border-color:rgba(201,162,39,.35);"></div>
+
+      <div style="display:flex; align-items:center; gap:10px; margin:14px 0; color:#8fa89a; font-size:12px;">
+        <span style="flex:1; height:1px; background:rgba(143,168,154,.3);"></span>
+        أو بكلمة السر
+        <span style="flex:1; height:1px; background:rgba(143,168,154,.3);"></span>
+      </div>
+
+      <div class="pw-shell">
+        <input type="password" id="passwordInput" placeholder="كلمة السر">
+        <button type="button" class="toggle-pw" id="togglePwBtn" aria-label="إظهار كلمة السر">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </button>
+      </div>
+      <label class="remember-row">
+        <input type="checkbox" id="rememberSession"> تذكرني في الجلسة دي بس (هتحتاج تسجل دخول تاني لو قفلت التاب)
+      </label>
+      <button type="button" class="submit-btn" id="loginBtn">دخول</button>
+      <div class="err" id="loginErr">كلمة السر غلط، أو حصل خطأ في الاتصال.</div>
+    </div>
+
+    <div id="dashboard">
+      <div class="session-bar no-print">
+        <span id="lastUpdated">—</span>
+        <span>
+          <span id="autoLockNote" style="margin-inline-end:12px;"></span>
+          <button type="button" class="logout-link" id="logoutBtn">تسجيل خروج</button>
+        </span>
+      </div>
+
+      <!-- Form/tenant switcher — lets one login manage several independent
+           registration forms running at the same time, each with its own
+           link/settings/sheets (see propKey_() in Code.gs). -->
+      <div class="session-bar no-print" id="formSwitcherBar" style="gap:10px; flex-wrap:wrap;">
+        <span style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <label for="formSwitcher" style="font-weight:700;">📋 الفورم:</label>
+          <select id="formSwitcher" style="min-width:160px; max-width:100%;"></select>
+          <label style="display:flex; align-items:center; gap:4px; font-size:13px; font-weight:400;">
+            <input type="checkbox" id="showArchivedFormsToggle"> اعرض المؤرشف
+          </label>
+        </span>
+        <span style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="settings-btn" id="addFormBtn">➕ فورم جديد</button>
+          <button type="button" class="settings-btn" id="renameFormBtn">✏️ تغيير الاسم</button>
+          <button type="button" class="settings-btn" id="copyFormLinkBtn">🔗 نسخ لينك الفورم</button>
+          <button type="button" class="settings-btn" id="showFormQrBtn">📱 QR الفورم</button>
+          <button type="button" class="settings-btn" id="archiveFormBtn">🗄️ أرشفة الفورم</button>
+        </span>
+      </div>
+
+      <div class="error-state" id="dashError" style="display:none;"></div>
+
+      <div class="stats-row" id="statsRow"></div>
+
+      <div class="tabs no-print">
+        <button type="button" class="tab-btn active" data-panel="tablePanel">📋 الجدول</button>
+        <button type="button" class="tab-btn" data-panel="chartsPanel">📊 تحليلات</button>
+        <button type="button" class="tab-btn" data-panel="settingsPanel">⚙️ الإعدادات</button>
+      </div>
+
+      <div class="panel active" id="tablePanel">
+        <div class="toolbar no-print">
+          <input type="text" id="searchInput" placeholder="بحث في كل الأعمدة (الاسم، الرقم القومي، الإيميل...)">
+          <select id="roleFilter">
+            <option value="">كل الصفات داخل الكيان</option>
+          </select>
+          <select id="facultyFilter">
+            <option value="">كل الكليات</option>
+          </select>
+          <select id="genderFilter">
+            <option value="">كل الأنواع</option>
+            <option value="Male">ذكر</option>
+            <option value="Female">أنثى</option>
+          </select>
+          <select id="jobFilter">
+            <option value="">الحالة الوظيفية</option>
+            <option value="Yes">بيشتغل</option>
+            <option value="No">مش بيشتغل</option>
+          </select>
+          <div class="toolbar-row2">
+            <label>من: <input type="date" id="dateFrom"></label>
+            <label>إلى: <input type="date" id="dateTo"></label>
+            <button type="button" id="clearFiltersBtn">مسح الفلاتر</button>
+            <span style="flex:1;"></span>
+            <label class="autorefresh-toggle"><input type="checkbox" id="autoRefreshToggle"> تحديث تلقائي كل
+              دقيقة</label>
+            <button type="button" id="privacyBtn">🔒 إخفاء البيانات الحساسة</button>
+            <button type="button" id="refreshBtn">↻ تحديث</button>
+            <button type="button" id="printBtn">🖨️ طباعة</button>
+            <button type="button" id="exportBtn">⬇ تصدير CSV سريع</button>
+            <button type="button" id="exportExcelBtn">📊 تصدير Excel منسّق (.xlsx)</button>
+            <button type="button" id="copyPhonesBtn"
+              title="بينسخ أرقام الموبايل بتاعة الصفوف الظاهرة حاليًا بعد الفلاتر، سطر تحت التاني — جاهزة تلصقها في قايمة واتساب">📋
+              نسخ أرقام الموبايل</button>
+            <button type="button" id="copyEmailsBtn"
+              title="بينسخ الإيميلات بتاعة الصفوف الظاهرة حاليًا بعد الفلاتر، مفصولة بفاصلة — جاهزة تلصقها في خانة CC/BCC">✉️
+              نسخ الإيميلات</button>
+            <label class="dup-only-toggle" title="يفلتر الجدول عشان يوريك بس الصفوف اللي رقم موبايلها مكرر في صف تاني">
+              <input type="checkbox" id="dupOnlyToggle"> ⚠️ عرض المكررين بس
+            </label>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-scroll">
+            <table id="dataTable">
+              <thead>
+                <tr id="tableHead"></tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="emptyState" style="display:none;">مفيش بيانات تطابق البحث</div>
+          <div class="loading" id="loadingState" style="display:none;">جاري التحميل...</div>
+          <div class="pagination no-print" id="paginationBar" style="display:none;"></div>
+        </div>
+      </div>
+
+      <div class="panel" id="chartsPanel">
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h3>التسجيلات عبر الوقت</h3><canvas id="chartTimeline"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>توزيع النوع</h3><canvas id="chartGender"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>الحالة الوظيفية</h3><canvas id="chartJob"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>الحالة الدراسية (خريج/طالب)</h3><canvas id="chartGraduate"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>أكثر 8 كليات تسجيلًا</h3><canvas id="chartFaculty"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>أكثر 8 صفات داخل الكيان</h3><canvas id="chartRole"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="settingsPanel">
+        <div class="settings-grid">
+
+          <div class="settings-card">
+            <h3>الدورة الحالية</h3>
+            <p class="hint">كل مرة تفتح فيها التسجيل من جديد، البيانات بتتسجل في شيت (تبويب) جديد منفصل تمامًا عن الدورة
+              اللي فاتت. من هنا تقدر تشوف بيانات أي دورة قديمة.</p>
+            <div class="cycle-row">
+              <select id="cycleSelect">
+                <option value="">جاري التحميل...</option>
+              </select>
+              <button type="button" class="settings-btn muted" id="cycleViewBtn">عرض</button>
+            </div>
+            <div class="settings-note" id="cycleNote"></div>
+          </div>
+
+          <div class="settings-card">
+            <h3>عنوان الاستمارة واسم الشيت</h3>
+            <p class="hint">العنوان ده اللي بيظهر لأي حد بيفتح استمارة التسجيل. اسم الشيت هو الاسم اللي هيتبني عليه اسم
+              أي تبويب جديد (مثلاً "تسجيلات 2026").</p>
+            <div class="settings-field">
+              <label for="cfgFormTitle">عنوان الاستمارة</label>
+              <input type="text" id="cfgFormTitle" placeholder="مثال: استمارة تسجيل أسرة صناع الحياة 2026">
+            </div>
+            <div class="settings-field">
+              <label for="cfgSheetBaseName">اسم الشيت الأساسي</label>
+              <input type="text" id="cfgSheetBaseName" placeholder="مثال: Registrations">
+            </div>
+            <div class="settings-field">
+              <label for="cfgMembershipPrefix">بادئة رقم العضوية (حروف/أرقام إنجليزي، من 2 لـ 8)</label>
+              <input type="text" id="cfgMembershipPrefix" placeholder="مثال: OSH" maxlength="8" style="text-transform:uppercase;">
+              <p class="hint">رقم العضوية هيبقى شكله "البادئة-000123". كل بادئة ليها ترقيمها الخاص، فمينفعش فورمين
+                يستخدموا نفس البادئة من غير ما يتشاركوا في نفس التسلسل.</p>
+            </div>
+            <div class="settings-row2">
+              <div class="settings-field">
+                <label for="cfgStartAt">بداية التسجيل (سيب فاضي = بدون حد)</label>
+                <input type="datetime-local" id="cfgStartAt">
+              </div>
+              <div class="settings-field">
+                <label for="cfgEndAt">نهاية التسجيل (سيب فاضي = بدون حد)</label>
+                <input type="datetime-local" id="cfgEndAt">
+              </div>
+            </div>
+            <div class="settings-field">
+              <label for="cfgConfirmEmailSubject">عنوان إيميل التأكيد (سيب فاضي = النص الافتراضي)</label>
+              <input type="text" id="cfgConfirmEmailSubject" placeholder="مثال: تأكيد التسجيل — تسجيل حدث كذا">
+            </div>
+            <div class="settings-field">
+              <label for="cfgConfirmEmailBody">نص إيميل التأكيد (سيب فاضي = النص الافتراضي)</label>
+              <textarea id="cfgConfirmEmailBody" rows="5" placeholder="استخدم {{name}} للاسم و{{membershipNo}} لرقم العضوية"></textarea>
+            </div>
+            <div class="settings-actions">
+              <button type="button" class="settings-btn primary" id="saveConfigBtn">حفظ الإعدادات</button>
+              <button type="button" class="settings-btn danger" id="newCycleBtn">ابدأ دورة تسجيل جديدة (شيت
+                جديد)</button>
+            </div>
+            <p class="hint" style="margin-top:10px;margin-bottom:0;">⚠️ التاريخ والوقت بيتحسبوا بتوقيت جهازك دلوقتي. لو
+              الأدمن والزوار في نفس المنطقة الزمنية (مصر مثلاً) مفيش مشكلة، بس لو مش متأكد افتح: Apps Script ▸ Project
+              Settings ▸ Time zone وتأكد إنها Africa/Cairo (أو التوقيت المناسب ليكم).</p>
+            <div class="settings-note" id="configNote"></div>
+          </div>
+
+          <div class="settings-card">
+            <h3>صورة الاستمارة (الشعار)</h3>
+            <p class="hint">اختر صورة من جهازك عشان تظهر بدل الشعار الافتراضي في أعلى استمارة التسجيل.</p>
+            <div class="logo-preview-row">
+              <img class="logo-preview" id="logoPreview" alt="الشعار الحالي">
+              <div>
+                <input type="file" id="logoFileInput" accept="image/*">
+              </div>
+            </div>
+            <div class="settings-actions">
+              <button type="button" class="settings-btn primary" id="uploadLogoBtn" disabled>رفع الصورة</button>
+              <button type="button" class="settings-btn muted" id="removeLogoBtn">استخدام الشعار الافتراضي</button>
+            </div>
+            <div class="settings-note" id="logoNote"></div>
+          </div>
+
+          <div class="settings-card">
+            <h3>🎓 شهادات الأعضاء</h3>
+            <p class="hint">ارفع ملف Word (.docx) للشهادة، وحط جوه أي مكان فيه النصوص دي بالظبط عشان تتبدل تلقائي —
+              اختار بس اللي محتاجه وحط كل واحد في أي مكان تحب في التصميم:
+              <code>{{name}}</code> الاسم،
+              <code>{{membershipNo}}</code> رقم العضوية،
+              <code>{{age}}</code> السن،
+              <code>{{gender}}</code> النوع،
+              <code>{{nationalId}}</code> الرقم القومي،
+              <code>{{phone}}</code> الهاتف،
+              <code>{{whatsapp}}</code> الواتساب،
+              <code>{{email}}</code> الإيميل،
+              <code>{{faculty}}</code> الكلية،
+              <code>{{graduate}}</code> خريج؟،
+              <code>{{role}}</code> الدور/الصفة،
+              <code>{{hasJob}}</code> بيشتغل؟،
+              <code>{{currentJob}}</code> الوظيفة الحالية،
+              <code>{{registrationDate}}</code> تاريخ التسجيل،
+              <code>{{date}}</code> تاريخ إرسال الشهادة.
+              كل مرة ترفع تيمبلت جديد بيستبدل اللي قبله — يعني تقدر تغيّر شكل الشهادة كل دورة من غير أي تعديل في الكود.
+            </p>
+            <div class="settings-field">
+              <label for="certFileInput">ملف الشهادة (.docx)</label>
+              <input type="file" id="certFileInput" accept=".docx">
+            </div>
+            <div class="settings-actions">
+              <button type="button" class="settings-btn primary" id="uploadCertBtn" disabled>رفع التيمبلت</button>
+              <button type="button" class="settings-btn muted" id="removeCertBtn">حذف التيمبلت الحالي</button>
+            </div>
+            <div class="settings-note" id="certNote"></div>
+
+            <div class="settings-field" style="margin-top:14px;">
+              <label class="autorefresh-toggle" style="font-weight:600;">
+                <input type="checkbox" id="cfgSendCertAuto">
+                إرسال الشهادة أوتوماتيك لكل عضو فور ما يسجل (زي إيميل التأكيد بالظبط)
+              </label>
+              <p class="hint" style="margin-top:6px;">لو الخيار ده مقفول، تقدر برضه تبعت الشهادة يدويًا — إما لعضو واحد
+                من
+                جوه تفاصيل السجل (اضغط على أي صف في الجدول)، أو لكل أعضاء الدورة دفعة واحدة من هنا تحت.</p>
+            </div>
+
+            <div class="settings-field" style="margin-top:10px;">
+              <label>اختبار سريع — ابعت شهادة ببيانات تجريبية لإيميلك عشان تتأكد من الشكل</label>
+              <div class="cycle-row">
+                <input type="email" id="certTestEmail" placeholder="you@example.com">
+                <button type="button" class="settings-btn muted" id="certTestBtn">ابعت تجريبية</button>
+              </div>
+            </div>
+
+            <div class="settings-actions" style="margin-top:14px;">
+              <button type="button" class="settings-btn danger" id="certBulkBtn">📧 إرسال شهادات لكل أعضاء الدورة
+                المختارة فوق (تبويب "الدورة الحالية")</button>
+            </div>
+            <div class="settings-note" id="certBulkNote"></div>
+          </div>
+
+          <div class="settings-card">
+            <h3>🎉 خيارات بعد التسجيل</h3>
+            <p class="hint">الأزرار اللي بتظهر للعضو فور ما يخلّص تسجيل (بعد شاشة "تم التسجيل بنجاح" مباشرة) — زي
+              "تواصل مع الـ HR" على واتساب أو "انضم لجروب الواتساب" أو أي لينك تاني. ضيف كل الاحتمالات اللي محتاجها
+              مرة واحدة، وبعدين استخدم عمود "ظاهر" تحت عشان تشغّل/تقفل أي واحد فيهم وقت ما تحب من غير ما تعدّل أي
+              حاجة تانية — اللي مقفول (❌) مش هيظهر للأعضاء خالص.</p>
+            <div class="mini-table-scroll">
+              <table class="field-config-table" id="successActionsTable" style="display:none;">
+                <thead>
+                  <tr>
+                    <th>النوع</th>
+                    <th>النص على الزرار</th>
+                    <th>الرقم / اللينك</th>
+                    <th>ظاهر</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="successActionsBody"></tbody>
+              </table>
+            </div>
+            <div class="settings-field" style="margin-top:10px;">
+              <div class="cycle-row" style="flex-wrap:wrap;">
+                <select id="newSuccessActionType">
+                  <option value="whatsapp_chat">واتساب — تواصل مباشر (مثلاً مع الـ HR)</option>
+                  <option value="whatsapp_group">واتساب — انضمام لجروب</option>
+                  <option value="telegram">تليجرام</option>
+                  <option value="facebook">فيسبوك</option>
+                  <option value="instagram">إنستجرام</option>
+                  <option value="link">لينك عام (أي حاجة تانية)</option>
+                </select>
+                <input type="text" id="newSuccessActionLabel" placeholder="النص على الزرار (مثلاً: تواصل مع تيم الـ HR)">
+              </div>
+              <input type="text" id="newSuccessActionValue" style="margin-top:8px;"
+                placeholder="رقم واتساب بالصيغة الدولية بدون + أو 00 (مثلاً 201xxxxxxxxx)">
+              <p class="hint" id="newSuccessActionHint" style="margin-top:4px;">لنوع "واتساب — تواصل مباشر" حط رقم
+                الواتساب بس (بدون + أو 00 وبدون مسافات)، مثلاً <code>201234567890</code> — هيتفتح تلقائي برسالة فيها
+                اسم العضو ورقم عضويته.</p>
+              <div class="settings-actions" style="margin-top:8px;">
+                <button type="button" class="settings-btn primary" id="addSuccessActionBtn">إضافة الزرار</button>
+              </div>
+            </div>
+            <div class="settings-actions" style="margin-top:16px;">
+              <button type="button" class="settings-btn primary" id="saveSuccessActionsBtn">حفظ خيارات بعد التسجيل</button>
+            </div>
+            <div class="settings-note" id="successActionsNote"></div>
+          </div>
+
+          <div class="settings-card">
+            <h3>🧩 حقول الاستمارة</h3>
+            <p class="hint">تحكم في أي حقول تظهر في استمارة التسجيل، وأي حقول منهم إجباري وأي حقول اختياري. حقلي "الاسم"
+              و"الرقم القومي" مش موجودين هنا لأنهم أساسيين للنظام (منع التكرار ورقم العضوية بيعتمدوا عليهم) وهيفضلوا
+              ظاهرين وإجباريين دايمًا. أي قسم مفيهوش ولا حقل شغال (لا من دول ولا من الحقول المخصصة تحت) بيختفي من
+              الاستمارة تلقائيًا — مش هيظهر كصفحة فاضية.</p>
+            <div id="fieldConfigSections"><!-- section groups injected by renderFieldConfigTable() --></div>
+
+            <h4 style="margin:20px 0 6px; font-size:14px; color:#e8f0e8;">➕ حقول مخصصة (بالاسم اللي انت عايزه)</h4>
+            <p class="hint">مش لاقي الحقل اللي محتاجه في القوائم فوق؟ ضيفه بنفسك هنا — أي اسم وأي نوع، وهيظهر في
+              الاستمارة زي أي حقل تاني. تقدر تستخدمه بعدين في الشهادة بالكود اللي هيتعرض جنبه بعد ما تضيفه.</p>
+            <div class="mini-table-scroll">
+              <table class="field-config-table" id="customFieldsTable" style="display:none;">
+                <thead>
+                  <tr>
+                    <th>الاسم</th>
+                    <th>الكود (للشهادة)</th>
+                    <th>ظاهر</th>
+                    <th>إجباري</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="customFieldsBody"></tbody>
+              </table>
+            </div>
+            <div class="settings-field" style="margin-top:10px;">
+              <div class="cycle-row" style="flex-wrap:wrap;">
+                <input type="text" id="newCustomFieldLabel" placeholder="اسم الحقل (مثلاً: تاريخ الانضمام)">
+                <select id="newCustomFieldType">
+                  <option value="text">نص قصير</option>
+                  <option value="textarea">نص طويل</option>
+                  <option value="number">رقم</option>
+                  <option value="date">تاريخ</option>
+                  <option value="select">قائمة اختيار</option>
+                  <option value="checkbox">نعم / لا</option>
+                </select>
+              </div>
+              <input type="text" id="newCustomFieldOptions"
+                placeholder="خيارات القائمة مفصولة بفاصلة (بس لو النوع «قائمة اختيار»)"
+                style="display:none; margin-top:8px;">
+              <div class="settings-actions" style="margin-top:8px;">
+                <button type="button" class="settings-btn primary" id="addCustomFieldBtn">إضافة الحقل</button>
+              </div>
+            </div>
+
+            <div class="settings-actions" style="margin-top:16px;">
+              <button type="button" class="settings-btn primary" id="saveFieldConfigBtn">حفظ إعدادات الحقول</button>
+            </div>
+            <div class="settings-note" id="fieldConfigNote"></div>
+          </div>
+
+          <div class="settings-card">
+            <h3>🩺 تشخيص</h3>
+            <p class="hint">لو أي حاجة مش شغالة (إعدادات مش بتتحفظ، إيميل مش بيتبعت...)، دوس هنا الأول — بيوريك السبب
+              بالظبط بدل ما تخمن.</p>
+            <div class="settings-actions">
+              <button type="button" class="settings-btn muted" id="runDiagnosticsBtn">شغّل التشخيص</button>
+            </div>
+            <pre class="settings-note" id="diagnosticsOutput"
+              style="white-space:pre-wrap; font-family:monospace; font-size:11px; background:var(--surface-muted); padding:10px; border-radius:8px; display:none;"></pre>
+          </div>
+
+          <div class="settings-card">
+            <h3>👥 حسابات الدخول</h3>
+            <p class="hint">تقدر تدي شخص تاني كلمة سر خاصة بيه لدخول الداشبورد، وتحدد بالظبط أي حاجة يقدر يعملها —
+              كل حساب بيشوف جدول التسجيلات والتحليلات دايمًا، وبعدين تختار له أي مزيج من الصلاحيات الأربعة دي:
+              <b>إعدادات عامة</b> (العنوان، الميعاد، الشعار، الدورات، التشخيص)،
+              <b>حقول الاستمارة</b>، <b>الشهادات</b> (رفع تيمبلت وإرسال)،
+              و<b>إدارة الحسابات</b> (دي الأخطر — بتسمح للحساب إنه يضيف/يمسح حسابات تانية، فاديها لمين تديها).
+              حساب من غير أي صلاحية من دول = عرض بس (زي viewer القديم). حساب معاه الأربعة = كل الصلاحيات (زي owner
+              القديم).
+            </p>
+            <div class="mini-table-scroll">
+              <table class="field-config-table" id="accountsTable">
+                <thead>
+                  <tr>
+                    <th>الاسم</th>
+                    <th>الإيميل</th>
+                    <th>الصلاحيات</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="accountsBody">
+                  <tr>
+                    <td colspan="4">جاري التحميل...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="settings-field" style="margin-top:14px;">
+              <label>إضافة حساب جديد</label>
+              <div class="cycle-row" style="flex-wrap:wrap;">
+                <input type="text" id="newAccountName" placeholder="الاسم (مثلاً: نائب المنسق)">
+                <input type="password" id="newAccountPassword" placeholder="كلمة السر">
+              </div>
+              <div class="permission-checkboxes" style="display:flex; gap:16px; flex-wrap:wrap; margin-top:10px;">
+                <label class="autorefresh-toggle"><input type="checkbox" id="permManageSettings">إعدادات عامة</label>
+                <label class="autorefresh-toggle"><input type="checkbox" id="permManageFields">حقول الاستمارة</label>
+                <label class="autorefresh-toggle"><input type="checkbox" id="permManageCertificates">الشهادات</label>
+                <label class="autorefresh-toggle"><input type="checkbox" id="permManageAccounts">إدارة الحسابات</label>
+              </div>
+              <div class="settings-actions" style="margin-top:10px;">
+                <button type="button" class="settings-btn primary" id="addAccountBtn">إضافة</button>
+              </div>
+            </div>
+            <div class="settings-note" id="accountsNote"></div>
+          </div>
+
+          <div class="settings-card">
+            <h3>📜 سجل النشاط</h3>
+            <p class="hint">آخر 500 حركة اتعملت من أي حساب في لوحة التحكم — مين عمل إيه وإمتى. للمراجعة بس، مش قابل
+              للتعديل.</p>
+            <button type="button" class="settings-btn" id="loadActivityLogBtn">تحميل السجل</button>
+            <div class="mini-table-scroll">
+              <table class="field-config-table" id="activityLogTable" style="display:none; margin-top:12px;">
+                <thead>
+                  <tr>
+                    <th>الوقت</th>
+                    <th>الحساب</th>
+                    <th>الحركة</th>
+                  </tr>
+                </thead>
+                <tbody id="activityLogBody"></tbody>
+              </table>
+            </div>
+            <div class="settings-note" id="activityLogNote"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay no-print" id="rowModalOverlay">
+    <div class="modal-box">
+      <h3>تفاصيل السجل</h3>
+      <div id="rowModalContent"></div>
+      <button type="button" class="modal-close" id="rowModalClose">إغلاق</button>
+    </div>
+  </div>
+
+  <div class="toast no-print" id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script>
+    // ==================== CONFIG (kept identical to the working backend) ====================
+    const SCRIPT_URL = "PASTE_YOUR_NEW_WEB_APP_URL_HERE"; // TODO: بعد الـ Deploy، الصق رابط الـ Web App بتاعك هنا (مش رابط سند)
+
+    // Paste your OAuth Client ID here too (SAME value as GOOGLE_CLIENT_ID in
+    // Code.gs — see BACKEND_SETUP_STEPS.md). Leave the placeholder and the
+    // "Sign in with Google" button just won't render — password login below
+    // it keeps working regardless.
+    const GOOGLE_CLIENT_ID = ""; // TODO: paste your own OAuth Client ID here (SAME value as GOOGLE_CLIENT_ID in Code.gs) if you want "Sign in with Google"
+
+    const SENSITIVE_HEADER_HINTS = ["National ID", "الرقم القومي", "Phone", "الهاتف", "Whatsapp", "واتساب", "Email", "ايميل", "إيميل"];
+    const AUTO_LOGOUT_MINUTES = 15;
+
+    let allHeaders = [];
+    let allRows = [];
+    let currentPassword = "";
+    // Which form/tenant the dashboard is currently pointed at ("" = the
+    // original/default form — see propKey_() in Code.gs). Switched via the
+    // "أي فورم" selector — see loadFormsList()/switchForm_() below.
+    let currentFormId = "";
+    let allForms = [{ id: "", name: "الفورم الأساسي", isDefault: true }];
+    let currentRole = "owner"; // display-only label ("owner"/"viewer"/"custom") — set from the login response, see fetchData()
+    // Granular capabilities for the logged-in account — set from the login response, see fetchData().
+    // Keys match PERMISSION_KEYS in Code.gs. Every logged-in account can view data; these four are extra.
+    let currentPermissions = { manageSettings: true, manageFields: true, manageCertificates: true, manageAccounts: true };
+    let privacyMode = false;
+    let currentPage = 1;
+    let pageSize = 25;
+    let sortState = { col: -1, dir: 1 };
+    let autoRefreshTimer = null;
+    let inactivityTimer = null;
+    let charts = {};
+
+    const gate = document.getElementById("gate");
+    const dashboard = document.getElementById("dashboard");
+    const loginBtn = document.getElementById("loginBtn");
+    const passwordInput = document.getElementById("passwordInput");
+    const loginErr = document.getElementById("loginErr");
+    const dashError = document.getElementById("dashError");
+    const loadingState = document.getElementById("loadingState");
+    const emptyState = document.getElementById("emptyState");
+    const tableHead = document.getElementById("tableHead");
+    const tableBody = document.getElementById("tableBody");
+    const statsRow = document.getElementById("statsRow");
+    const searchInput = document.getElementById("searchInput");
+    const roleFilter = document.getElementById("roleFilter");
+    const facultyFilter = document.getElementById("facultyFilter");
+    const genderFilter = document.getElementById("genderFilter");
+    const jobFilter = document.getElementById("jobFilter");
+    const dateFrom = document.getElementById("dateFrom");
+    const dateTo = document.getElementById("dateTo");
+    const dupOnlyToggle = document.getElementById("dupOnlyToggle");
+    const paginationBar = document.getElementById("paginationBar");
+    const headerActions = document.getElementById("headerActions");
+    const lastUpdated = document.getElementById("lastUpdated");
+    const autoLockNote = document.getElementById("autoLockNote");
+
+    function toast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(el._t);
+      el._t = setTimeout(() => el.classList.remove("show"), 2600);
+    }
+
+    // ==================== Theme ====================
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("dys_dash_theme", theme);
+    }
+    applyTheme(localStorage.getItem("dys_dash_theme") || "light");
+    document.getElementById("themeToggle").addEventListener("click", () => {
+      const cur = document.documentElement.getAttribute("data-theme");
+      applyTheme(cur === "dark" ? "light" : "dark");
+      if (allRows.length) renderCharts();
+    });
+
+    // ==================== Password visibility ====================
+    document.getElementById("togglePwBtn").addEventListener("click", () => {
+      passwordInput.type = passwordInput.type === "password" ? "text" : "password";
+    });
+    passwordInput.addEventListener("keydown", e => { if (e.key === "Enter") loginBtn.click(); });
+
+    // ==================== Fetching ====================
+    let currentSheetName = ""; // "" = whichever sheet is the ACTIVE cycle right now
+    let activeSheetNameFromServer = "";
+
+    // Appended to every GET/POST call so the backend knows which form/tenant
+    // this request is about — see propKey_() in Code.gs.
+    function formQS() {
+      return `&form=${encodeURIComponent(currentFormId)}`;
+    }
+
+    function fetchData(password, sheetName) {
+      loadingState.style.display = "block";
+      emptyState.style.display = "none";
+      dashError.style.display = "none";
+      renderSkeleton();
+      let url = `${SCRIPT_URL}?action=list&password=${encodeURIComponent(password)}${formQS()}`;
+      if (sheetName) url += `&sheet=${encodeURIComponent(sheetName)}`;
+      url += `&_=${Date.now()}`;
+      return fetch(url, { cache: "no-store" })
+        .then(r => r.json())
+        .then(res => {
+          loadingState.style.display = "none";
+          if (res.status !== "success") throw new Error(res.message || "Unauthorized");
+          allHeaders = res.headers;
+          allRows = res.rows;
+          resolveColumns();
+          recomputeDuplicatePhones_();
+          activeSheetNameFromServer = res.activeSheetName || "";
+          currentRole = res.role || "owner";
+          currentPermissions = res.permissions || { manageSettings: false, manageFields: false, manageCertificates: false, manageAccounts: false };
+          applyPermissions_();
+          lastUpdated.textContent = "آخر تحديث: " + new Date().toLocaleTimeString("ar-EG") +
+            (res.sheetName ? ` — الشيت: ${res.sheetName}` : "");
+          return true;
+        });
+    }
+
+    // Hides individual ⚙️ الإعدادات cards the current account doesn't have
+    // permission to touch (the backend would reject the request anyway, so
+    // there's no point showing a card that can't actually be used), and
+    // hides the whole tab only if the account has NONE of the four
+    // capabilities at all (a pure viewer).
+    const SETTINGS_CARD_PERMISSIONS = [
+      { selector: "#saveConfigBtn", permission: "manageSettings" },     // عنوان الاستمارة واسم الشيت + دورة تسجيل جديدة
+      { selector: "#uploadLogoBtn", permission: "manageSettings" },     // صورة الاستمارة
+      { selector: "#runDiagnosticsBtn", permission: "manageSettings" }, // تشخيص
+      { selector: "#saveSuccessActionsBtn", permission: "manageSettings" }, // خيارات بعد التسجيل
+      { selector: "#addFormBtn", permission: "manageSettings" },     // فورم جديد
+      { selector: "#renameFormBtn", permission: "manageSettings" }, // تغيير اسم الفورم
+      { selector: "#archiveFormBtn", permission: "manageSettings" }, // أرشفة الفورم
+      { selector: "#uploadCertBtn", permission: "manageCertificates" }, // شهادات الأعضاء
+      { selector: "#saveFieldConfigBtn", permission: "manageFields" },  // حقول الاستمارة
+      { selector: "#addAccountBtn", permission: "manageAccounts" },     // حسابات الدخول
+      { selector: "#loadActivityLogBtn", permission: "manageSettings" }, // سجل النشاط
+    ];
+
+    function applyPermissions_() {
+      const settingsTabBtn = document.querySelector('.tab-btn[data-panel="settingsPanel"]');
+      if (!settingsTabBtn) return;
+
+      const hasAnySettingsPermission = ["manageSettings", "manageFields", "manageCertificates", "manageAccounts"]
+        .some(key => currentPermissions[key]);
+
+      if (!hasAnySettingsPermission) {
+        settingsTabBtn.style.display = "none";
+        // in case a viewer had the settings tab open in a previous session, bounce them to the table
+        if (settingsTabBtn.classList.contains("active")) {
+          document.querySelector('.tab-btn[data-panel="tablePanel"]').click();
+        }
+        return;
+      }
+      settingsTabBtn.style.display = "";
+
+      // The "الدورة الحالية" card (cycle switcher) is read-only itself
+      // (viewing an old cycle only needs viewData), so it's never hidden.
+      SETTINGS_CARD_PERMISSIONS.forEach(({ selector, permission }) => {
+        const anchorEl = document.querySelector(selector);
+        const card = anchorEl ? anchorEl.closest(".settings-card") : null;
+        if (card) card.style.display = currentPermissions[permission] ? "" : "none";
+      });
+    }
+
+    function renderSkeleton() {
+      tableBody.innerHTML = Array.from({ length: 6 }).map(() =>
+        `<tr class="skeleton-row"><td colspan="8"><div class="skeleton-bar"></div></td></tr>`
+      ).join("");
+    }
+
+    // Shared by both login paths (password + Google) — everything from here
+    // down is identical regardless of which credential got us in.
+    function completeLogin_(token, rememberIt) {
+      currentPassword = token;
+      if (rememberIt) {
+        try { sessionStorage.setItem("dys_dash_pwd", token); } catch (e) { }
+      }
+      gate.style.display = "none";
+      dashboard.classList.add("show");
+      headerActions.style.display = "flex";
+      populateFilters();
+      renderAll();
+      startInactivityWatch();
+      loadFormsList(currentFormId);
+      document.getElementById("aiChatBubble").classList.add("visible");
+    }
+
+    loginBtn.addEventListener("click", () => {
+      const pwd = passwordInput.value.trim();
+      if (!pwd) return;
+      loginBtn.disabled = true;
+      loginBtn.textContent = "جاري التحقق...";
+      loginErr.classList.remove("show");
+      fetchData(pwd)
+        .then(() => completeLogin_(pwd, document.getElementById("rememberSession").checked))
+        .catch(() => {
+          loginErr.classList.add("show");
+        })
+        .finally(() => {
+          loginBtn.disabled = false;
+          loginBtn.textContent = "دخول";
+        });
+    });
+
+    // ==================== Google Sign-In ====================
+    // Renders the button only if a real Client ID was pasted in above —
+    // otherwise this silently does nothing and password login (above) still
+    // works exactly as before.
+    const googlePendingNote = document.getElementById("googlePendingNote");
+
+    function handleGoogleCredential_(response) {
+      googlePendingNote.style.display = "none";
+      loginErr.classList.remove("show");
+      const gsiBtn = document.getElementById("googleSignInBtn");
+      gsiBtn.style.opacity = "0.5"; gsiBtn.style.pointerEvents = "none";
+
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "googleLogin", idToken: response.credential }),
+      })
+        .then(r => r.json())
+        .then(res => {
+          if (res.status === "success") {
+            return fetchData(res.sessionToken).then(() => completeLogin_(res.sessionToken, document.getElementById("rememberSession").checked));
+          }
+          if (res.status === "pending") {
+            googlePendingNote.textContent = res.message || "طلبك اتبعت — استنى الموافقة.";
+            googlePendingNote.style.display = "block";
+            return;
+          }
+          loginErr.textContent = res.message || "فشل الدخول بحساب جوجل.";
+          loginErr.classList.add("show");
+        })
+        .catch(() => {
+          loginErr.textContent = "تعذر الاتصال — جرب تاني.";
+          loginErr.classList.add("show");
+        })
+        .finally(() => { gsiBtn.style.opacity = "1"; gsiBtn.style.pointerEvents = "auto"; });
+    }
+
+    if (window.google && google.accounts && GOOGLE_CLIENT_ID.indexOf("PASTE_YOUR_CLIENT_ID_HERE") === -1) {
+      google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredential_ });
+      google.accounts.id.renderButton(document.getElementById("googleSignInBtn"), {
+        type: "standard", theme: "outline", size: "large", text: "signin_with", locale: "ar",
+      });
+    } else if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.indexOf("PASTE_YOUR_CLIENT_ID_HERE") > -1) {
+      document.getElementById("googleSignInBtn").style.display = "none";
+    }
+    // If google.accounts isn't ready yet (script still loading), retry once
+    // shortly after — GIS usually finishes loading well before someone
+    // actually reaches for the button, so this is just a safety net.
+    else {
+      setTimeout(() => {
+        if (window.google && google.accounts) {
+          google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredential_ });
+          google.accounts.id.renderButton(document.getElementById("googleSignInBtn"), {
+            type: "standard", theme: "outline", size: "large", text: "signin_with", locale: "ar",
+          });
+        }
+      }, 800);
+    }
+
+    // try to resume a session-only login (survives refresh in same tab, cleared when tab closes)
+    (function tryResumeSession() {
+      let pwd;
+      try { pwd = sessionStorage.getItem("dys_dash_pwd"); } catch (e) { return; }
+      if (!pwd) return;
+      loginBtn.disabled = true;
+      fetchData(pwd)
+        .then(() => completeLogin_(pwd, true))
+        .catch(() => { try { sessionStorage.removeItem("dys_dash_pwd"); } catch (e2) { } })
+        .finally(() => { loginBtn.disabled = false; });
+    })();
+
+    document.getElementById("refreshBtn").addEventListener("click", () => {
+      if (!currentPassword) return;
+      fetchData(currentPassword, currentSheetName).then(() => { populateFilters(); renderAll(); toast("اتحدثت البيانات ✓"); }).catch(() => toast("فشل التحديث"));
+    });
+
+    document.getElementById("logoutBtn").addEventListener("click", () => doLogout());
+
+    function doLogout(reason) {
+      currentPassword = "";
+      currentSheetName = "";
+      currentFormId = "";
+      settingsLoadedOnce = false;
+      try { sessionStorage.removeItem("dys_dash_pwd"); } catch (e) { }
+      dashboard.classList.remove("show");
+      headerActions.style.display = "none";
+      gate.style.display = "block";
+      passwordInput.value = "";
+      try { if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); } catch (e) { }
+      clearTimeout(inactivityTimer);
+      clearInterval(autoRefreshTimer);
+      document.getElementById("aiChatBubble").classList.remove("visible");
+      document.getElementById("aiChatPanel").classList.remove("open");
+      if (reason) toast(reason);
+    }
+
+    // ==================== Inactivity auto-logout (protects real PII on shared screens) ====================
+    function startInactivityWatch() {
+      resetInactivityTimer();
+      ["mousemove", "keydown", "click", "scroll", "touchstart"].forEach(evt =>
+        document.addEventListener(evt, resetInactivityTimer, { passive: true }));
+    }
+    function resetInactivityTimer() {
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => doLogout("اتقفلت الجلسة تلقائيًا بعد فترة عدم نشاط، لأسباب أمان"), AUTO_LOGOUT_MINUTES * 60 * 1000);
+    }
+    autoLockNote.textContent = `🔒 قفل تلقائي بعد ${AUTO_LOGOUT_MINUTES} دقيقة خمول`;
+
+    // ==================== Auto refresh ====================
+    document.getElementById("autoRefreshToggle").addEventListener("change", (e) => {
+      clearInterval(autoRefreshTimer);
+      if (e.target.checked) {
+        autoRefreshTimer = setInterval(() => {
+          if (!currentPassword) return;
+          fetchData(currentPassword).then(() => { populateFilters(); renderAll(); });
+        }, 60000);
+      }
+    });
+
+    // ==================== Column helpers ====================
+    function colIndex(name) { return allHeaders.indexOf(name); }
+    function findColIndex(candidates) {
+      for (const name of candidates) { const i = colIndex(name); if (i > -1) return i; }
+      // fuzzy contains-match fallback
+      for (let i = 0; i < allHeaders.length; i++) {
+        const h = (allHeaders[i] || "").toLowerCase();
+        if (candidates.some(c => h.includes(c.toLowerCase()))) return i;
+      }
+      return -1;
+    }
+
+    const COL = {}; // resolved indices, computed after each fetch
+    function resolveColumns() {
+      COL.role = findColIndex(["Role in Entity", "الصفة"]);
+      COL.faculty = findColIndex(["Faculty", "الكلية"]);
+      COL.hasJob = findColIndex(["Has Job", "يعمل"]);
+      COL.graduate = findColIndex(["Graduate", "خريج"]);
+      COL.name = findColIndex(["Name", "الاسم"]);
+      COL.nid = findColIndex(["National ID", "الرقم القومي"]);
+      COL.email = findColIndex(["Email", "ايميل", "إيميل"]);
+      COL.gender = findColIndex(["Gender", "النوع"]);
+      COL.phone = findColIndex(["Phone", "الهاتف"]);
+      COL.whatsapp = findColIndex(["Whatsapp", "واتساب", "الواتساب"]);
+      COL.timestamp = findColIndex(["Timestamp", "Date", "التاريخ", "الوقت"]);
+    }
+
+    // Phone/whatsapp numbers that show up on more than one row — computed
+    // once per data load (see fetchData) rather than on every render/filter,
+    // so it stays cheap even on a large sheet. Used both for the "أرقام
+    // موبايل مكررة" stat and to flag individual rows in the table.
+    let duplicatePhoneSet = new Set();
+    function recomputeDuplicatePhones_() {
+      duplicatePhoneSet = new Set();
+      const col = COL.whatsapp > -1 ? COL.whatsapp : COL.phone;
+      if (col < 0) return;
+      const counts = {};
+      allRows.forEach(r => {
+        const v = String(r[col] ?? "").trim();
+        if (v) counts[v] = (counts[v] || 0) + 1;
+      });
+      Object.keys(counts).forEach(k => { if (counts[k] > 1) duplicatePhoneSet.add(k); });
+    }
+    function rowIsDuplicate_(row) {
+      const col = COL.whatsapp > -1 ? COL.whatsapp : COL.phone;
+      if (col < 0) return false;
+      return duplicatePhoneSet.has(String(row[col] ?? "").trim());
+    }
+
+    function isSensitiveHeader(header) {
+      return SENSITIVE_HEADER_HINTS.some(h => (header || "").toLowerCase().includes(h.toLowerCase()));
+    }
+
+    function maskValue(v) {
+      const s = String(v ?? "");
+      if (s.length <= 3) return "***";
+      return "*".repeat(Math.max(s.length - 3, 3)) + s.slice(-3);
+    }
+
+    // ==================== Filters ====================
+    function populateFilters() {
+      resolveColumns();
+      const roles = new Set(), faculties = new Set();
+      allRows.forEach(row => {
+        if (COL.role > -1 && row[COL.role]) roles.add(row[COL.role]);
+        if (COL.faculty > -1 && row[COL.faculty]) faculties.add(row[COL.faculty]);
+      });
+      fillSelect(roleFilter, roles);
+      fillSelect(facultyFilter, faculties);
+      roleFilter.style.display = COL.role > -1 ? "" : "none";
+      facultyFilter.style.display = COL.faculty > -1 ? "" : "none";
+      genderFilter.style.display = COL.gender > -1 ? "" : "none";
+      jobFilter.style.display = COL.hasJob > -1 ? "" : "none";
+      const dateRangeVisible = COL.timestamp > -1;
+      dateFrom.closest("label").style.display = dateRangeVisible ? "" : "none";
+      dateTo.closest("label").style.display = dateRangeVisible ? "" : "none";
+    }
+
+    function fillSelect(selectEl, values) {
+      const current = selectEl.value;
+      selectEl.innerHTML = selectEl.options[0].outerHTML;
+      Array.from(values).sort().forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v; opt.textContent = v;
+        selectEl.appendChild(opt);
+      });
+      selectEl.value = current;
+    }
+
+    function parseRowDate(row) {
+      if (COL.timestamp < 0) return null;
+      const raw = row[COL.timestamp];
+      if (!raw) return null;
+      const d = new Date(raw);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    function getFilteredRows() {
+      const q = searchInput.value.trim().toLowerCase();
+      const roleVal = roleFilter.value, facultyVal = facultyFilter.value, genderVal = genderFilter.value, jobVal = jobFilter.value;
+      const fromVal = dateFrom.value ? new Date(dateFrom.value) : null;
+      const toVal = dateTo.value ? new Date(dateTo.value + "T23:59:59") : null;
+      const dupOnly = dupOnlyToggle.checked;
+
+      return allRows.filter(row => {
+        if (dupOnly && !rowIsDuplicate_(row)) return false;
+        if (COL.role > -1 && roleVal && row[COL.role] !== roleVal) return false;
+        if (COL.faculty > -1 && facultyVal && row[COL.faculty] !== facultyVal) return false;
+        if (COL.gender > -1 && genderVal && row[COL.gender] !== genderVal) return false;
+        if (COL.hasJob > -1 && jobVal && row[COL.hasJob] !== jobVal) return false;
+        if (fromVal || toVal) {
+          const d = parseRowDate(row);
+          if (d) {
+            if (fromVal && d < fromVal) return false;
+            if (toVal && d > toVal) return false;
+          }
+        }
+        if (q) {
+          const haystack = row.map(c => String(c ?? "")).join(" ").toLowerCase();
+          if (!haystack.includes(q)) return false;
+        }
+        return true;
+      });
+    }
+
+    // Debounced re-render for the free-text search box specifically — with a
+    // big sheet, filtering + re-rendering the whole table on every single
+    // keystroke gets janky. Dropdowns/date pickers fire far less often so
+    // they're left instant, as before.
+    let searchDebounceTimer;
+    searchInput.addEventListener("input", () => {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => { currentPage = 1; renderTable(); }, 220);
+    });
+    [roleFilter, facultyFilter, genderFilter, jobFilter, dateFrom, dateTo, dupOnlyToggle].forEach(el => {
+      el.addEventListener("input", () => { currentPage = 1; renderTable(); });
+      el.addEventListener("change", () => { currentPage = 1; renderTable(); });
+    });
+
+    document.getElementById("clearFiltersBtn").addEventListener("click", () => {
+      searchInput.value = ""; roleFilter.value = ""; facultyFilter.value = ""; genderFilter.value = "";
+      jobFilter.value = ""; dateFrom.value = ""; dateTo.value = ""; dupOnlyToggle.checked = false;
+      currentPage = 1; renderTable();
+    });
+
+    // ==================== Stats ====================
+    function renderStats() {
+      resolveColumns();
+      const total = allRows.length;
+      const workingCount = COL.hasJob > -1 ? allRows.filter(r => r[COL.hasJob] === "Yes").length : 0;
+      const graduateCount = COL.graduate > -1 ? allRows.filter(r => r[COL.graduate] === "Yes").length : 0;
+      const uniqueRoles = COL.role > -1 ? new Set(allRows.map(r => r[COL.role]).filter(Boolean)).size : 0;
+      const femaleCount = COL.gender > -1 ? allRows.filter(r => r[COL.gender] === "Female").length : 0;
+
+      const cards = [
+        { num: total, label: "إجمالي المسجلين" },
+      ];
+      // Today / this-week counts — purely additive, only shown when the
+      // sheet actually has a recognizable timestamp column (same helper
+      // getFilteredRows already relies on, so no new assumptions here).
+      if (COL.timestamp > -1) {
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfWeek = new Date(startOfToday); startOfWeek.setDate(startOfWeek.getDate() - 6);
+        let todayCount = 0, weekCount = 0;
+        allRows.forEach(row => {
+          const d = parseRowDate(row);
+          if (!d) return;
+          if (d >= startOfToday) todayCount++;
+          if (d >= startOfWeek) weekCount++;
+        });
+        cards.push({ num: todayCount, label: "تسجيلات النهاردة" });
+        cards.push({ num: weekCount, label: "تسجيلات آخر 7 أيام" });
+      }
+      if (COL.role > -1) cards.push({ num: uniqueRoles, label: "عدد الصفات المختلفة" });
+      if (COL.hasJob > -1) cards.push({ num: total ? Math.round(workingCount / total * 100) + "%" : "0%", label: "بيشتغلوا حاليًا" });
+      if (COL.graduate > -1) cards.push({ num: total ? Math.round(graduateCount / total * 100) + "%" : "0%", label: "نسبة الخريجين" });
+      if (COL.gender > -1) cards.push({ num: total ? Math.round(femaleCount / total * 100) + "%" : "0%", label: "نسبة الإناث" });
+      // Duplicate-phone detector — flags possible double registrations (same
+      // person submitting twice with a different National ID, or a typo'd
+      // ID). Purely informational: doesn't touch the sheet or block anything.
+      if (COL.whatsapp > -1 || COL.phone > -1) {
+        cards.push({ num: duplicatePhoneSet.size, label: "أرقام موبايل مكررة", warn: duplicatePhoneSet.size > 0 });
+      }
+
+      statsRow.innerHTML = cards.map(c =>
+        `<div class="stat-card${c.warn ? ' stat-card-warn' : ''}"><div class="num">${c.num}</div><div class="label">${c.label}</div></div>`
+      ).join("");
+    }
+
+    // ==================== Table render (with sort + pagination + privacy mask) ====================
+    function compareValues(a, b) {
+      const na = parseFloat(a), nb = parseFloat(b);
+      if (!isNaN(na) && !isNaN(nb) && String(a).trim() !== "" && String(b).trim() !== "") return na - nb;
+      return String(a ?? "").localeCompare(String(b ?? ""), "ar");
+    }
+
+    function renderTableHead() {
+      tableHead.innerHTML = allHeaders.map((h, i) => {
+        const arrow = sortState.col === i ? (sortState.dir === 1 ? "▲" : "▼") : "↕";
+        return `<th data-col="${i}" class="${sortState.col === i ? "sorted" : ""}"><span class="th-inner">${escapeHtml(h)}<span class="sort-arrow">${arrow}</span></span></th>`;
+      }).join("");
+      tableHead.querySelectorAll("th").forEach(th => {
+        th.addEventListener("click", () => {
+          const col = Number(th.dataset.col);
+          if (sortState.col === col) sortState.dir *= -1; else { sortState.col = col; sortState.dir = 1; }
+          renderTable();
+        });
+      });
+    }
+
+    function renderTable() {
+      renderTableHead();
+      let rows = getFilteredRows();
+
+      if (sortState.col > -1) {
+        rows = rows.slice().sort((a, b) => compareValues(a[sortState.col], b[sortState.col]) * sortState.dir);
+      }
+
+      if (rows.length === 0) {
+        tableBody.innerHTML = "";
+        emptyState.style.display = "block";
+        paginationBar.style.display = "none";
+        return;
+      }
+      emptyState.style.display = "none";
+
+      const totalPages = pageSize === -1 ? 1 : Math.max(1, Math.ceil(rows.length / pageSize));
+      if (currentPage > totalPages) currentPage = totalPages;
+      const start = pageSize === -1 ? 0 : (currentPage - 1) * pageSize;
+      const end = pageSize === -1 ? rows.length : start + pageSize;
+      const pageRows = rows.slice(start, end);
+
+      tableBody.innerHTML = pageRows.map(row => {
+        const cells = row.map((cell, i) => {
+          const header = allHeaders[i];
+          let display = String(cell ?? "");
+          let cls = "";
+          if (privacyMode && isSensitiveHeader(header) && display) { display = maskValue(display); cls = "masked"; }
+          return `<td class="${cls}">${escapeHtml(display)}</td>`;
+        }).join("");
+        const dupCls = rowIsDuplicate_(row) ? " dup-row" : "";
+        const dupTitle = dupCls ? ' title="⚠️ رقم الموبايل ده مكرر في صف تاني — راجع البيانات"' : "";
+        return `<tr data-idx="${allRows.indexOf(row)}" class="${dupCls}"${dupTitle}>${cells}</tr>`;
+      }).join("");
+
+      tableBody.querySelectorAll("tr").forEach(tr => {
+        tr.addEventListener("click", () => openRowModal(allRows[Number(tr.dataset.idx)]));
+      });
+
+      renderPagination(rows.length, totalPages);
+    }
+
+    function renderPagination(totalRows, totalPages) {
+      paginationBar.style.display = "flex";
+      paginationBar.innerHTML = `
+        <span>عرض ${totalRows} سجل — صفحة ${currentPage} من ${totalPages}</span>
+        <div class="pg-controls">
+          <select id="pageSizeSelect">
+            <option value="25" ${pageSize == 25 ? "selected" : ""}>25</option>
+            <option value="50" ${pageSize == 50 ? "selected" : ""}>50</option>
+            <option value="100" ${pageSize == 100 ? "selected" : ""}>100</option>
+            <option value="-1" ${pageSize == -1 ? "selected" : ""}>الكل</option>
+          </select>
+          <button type="button" id="pgFirst" ${currentPage === 1 ? "disabled" : ""}>«</button>
+          <button type="button" id="pgPrev" ${currentPage === 1 ? "disabled" : ""}>‹</button>
+          <button type="button" id="pgNext" ${currentPage === totalPages ? "disabled" : ""}>›</button>
+          <button type="button" id="pgLast" ${currentPage === totalPages ? "disabled" : ""}>»</button>
+        </div>`;
+      document.getElementById("pageSizeSelect").addEventListener("change", e => { pageSize = Number(e.target.value); currentPage = 1; renderTable(); });
+      document.getElementById("pgFirst").addEventListener("click", () => { currentPage = 1; renderTable(); });
+      document.getElementById("pgPrev").addEventListener("click", () => { currentPage = Math.max(1, currentPage - 1); renderTable(); });
+      document.getElementById("pgNext").addEventListener("click", () => { currentPage = Math.min(totalPages, currentPage + 1); renderTable(); });
+      document.getElementById("pgLast").addEventListener("click", () => { currentPage = totalPages; renderTable(); });
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+    }
+
+    document.getElementById("privacyBtn").addEventListener("click", (e) => {
+      privacyMode = !privacyMode;
+      e.currentTarget.classList.toggle("active", privacyMode);
+      e.currentTarget.textContent = privacyMode ? "🔓 إظهار البيانات الحساسة" : "🔒 إخفاء البيانات الحساسة";
+      renderTable();
+    });
+
+    // ==================== Row detail modal ====================
+    const rowModalOverlay = document.getElementById("rowModalOverlay");
+    function openRowModal(row) {
+      if (!row) return;
+      const content = document.getElementById("rowModalContent");
+      content.innerHTML = allHeaders.map((h, i) => {
+        const val = String(row[i] ?? "") || "—";
+        const canCopy = i === COL.phone || i === COL.nid || i === COL.email;
+        return `<div class="modal-row"><span class="k">${escapeHtml(h)}</span><span class="v">${escapeHtml(val)}${canCopy && val !== "—" ? `<button class="modal-copy" data-copy="${escapeHtml(val)}">نسخ</button>` : ""}</span></div>`;
+      }).join("");
+      content.querySelectorAll(".modal-copy").forEach(btn => {
+        btn.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          navigator.clipboard.writeText(btn.dataset.copy).then(() => toast("اتنسخ ✓"));
+        });
+      });
+
+      const nid = String(row[COL.nid] ?? "").trim();
+      const email = COL.email > -1 ? String(row[COL.email] ?? "").trim() : "";
+      if (currentPermissions.manageCertificates) {
+        const sendBtn = document.createElement("button");
+        sendBtn.type = "button";
+        sendBtn.className = "modal-close";
+        sendBtn.style.marginTop = "10px";
+        sendBtn.textContent = "📧 إرسال شهادة للعضو ده";
+        sendBtn.disabled = !email;
+        if (!email) sendBtn.title = "السجل ده مفيهوش إيميل";
+        sendBtn.addEventListener("click", () => {
+          sendBtn.disabled = true;
+          sendBtn.textContent = "جاري الإرسال...";
+          postAdmin({ action: "sendCertificate", nationalId: nid, sheet: currentSheetName || activeSheetNameFromServer })
+            .then(res => {
+              if (res.status !== "success") throw new Error(res.message || "error");
+              toast("اترسلت الشهادة ✓");
+              sendBtn.textContent = "✓ اترسلت";
+            })
+            .catch(err => {
+              toast("فشل الإرسال: " + err.message);
+              sendBtn.textContent = "📧 إرسال شهادة للعضو ده";
+              sendBtn.disabled = !email;
+            });
+        });
+        content.appendChild(sendBtn);
+      }
+
+      rowModalOverlay.classList.add("show");
+    }
+    document.getElementById("rowModalClose").addEventListener("click", () => rowModalOverlay.classList.remove("show"));
+    rowModalOverlay.addEventListener("click", (e) => { if (e.target === rowModalOverlay) rowModalOverlay.classList.remove("show"); });
+    document.addEventListener("keydown", e => { if (e.key === "Escape") rowModalOverlay.classList.remove("show"); });
+
+    // ==================== Tabs ====================
+    let settingsLoadedOnce = false;
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById(btn.dataset.panel).classList.add("active");
+        if (btn.dataset.panel === "chartsPanel") renderCharts();
+        if (btn.dataset.panel === "settingsPanel" && !settingsLoadedOnce) {
+          settingsLoadedOnce = true;
+          loadCycles();
+          loadConfigForm();
+          loadAccountsTable();
+        }
+      });
+    });
+
+    // ==================== Settings tab ====================
+    function postAdmin(bodyObj) {
+      return fetch(SCRIPT_URL, {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(Object.assign({ password: currentPassword, formId: currentFormId }, bodyObj)),
+      }).then(r => r.json());
+    }
+
+    function setNote(elId, msg, kind) {
+      const el = document.getElementById(elId);
+      el.textContent = msg || "";
+      el.className = "settings-note" + (kind ? " " + kind : "");
+    }
+
+    // ISO string (as stored by the backend) <-> the plain "YYYY-MM-DDTHH:mm"
+    // format the <input type="datetime-local"> expects. Both sides are just
+    // treated as "local time" — no timezone math — so make sure the device
+    // filling this form and the Apps Script project use the same timezone
+    // (see the note under the date fields).
+    function isoToLocalInputValue(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return "";
+      const pad = n => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function loadCycles() {
+      const select = document.getElementById("cycleSelect");
+      select.innerHTML = `<option value="">جاري التحميل...</option>`;
+      fetch(`${SCRIPT_URL}?action=listCycles&password=${encodeURIComponent(currentPassword)}${formQS()}&_=${Date.now()}`, { cache: "no-store" })
+        .then(r => r.json())
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          select.innerHTML = "";
+          res.sheets.forEach(s => {
+            const opt = document.createElement("option");
+            opt.value = s.name;
+            opt.textContent = `${s.name} — ${s.rows} تسجيل` + (s.isActive ? " (الدورة الحالية)" : "");
+            if (s.name === (currentSheetName || res.activeSheetName)) opt.selected = true;
+            select.appendChild(opt);
+          });
+        })
+        .catch(() => { select.innerHTML = `<option value="">تعذر تحميل القائمة</option>`; });
+    }
+
+    document.getElementById("cycleViewBtn").addEventListener("click", () => {
+      const select = document.getElementById("cycleSelect");
+      const chosen = select.value;
+      if (!chosen) return;
+      currentSheetName = (chosen === activeSheetNameFromServer) ? "" : chosen;
+      fetchData(currentPassword, currentSheetName)
+        .then(() => { populateFilters(); renderAll(); setNote("cycleNote", `بتشوف دلوقتي بيانات: ${chosen}`, "ok"); })
+        .catch(() => setNote("cycleNote", "تعذر تحميل بيانات الشيت ده", "err"));
+    });
+
+    function loadConfigForm() {
+      fetch(`${SCRIPT_URL}?action=getConfig&password=${encodeURIComponent(currentPassword)}${formQS()}&_=${Date.now()}`, { cache: "no-store" })
+        .then(r => r.json())
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          const cfg = res.config;
+          document.getElementById("cfgFormTitle").value = cfg.formTitle || "";
+          document.getElementById("cfgSheetBaseName").value = cfg.sheetBaseName || "";
+          document.getElementById("cfgMembershipPrefix").value = cfg.membershipPrefix || "";
+          document.getElementById("cfgStartAt").value = isoToLocalInputValue(cfg.startAt);
+          document.getElementById("cfgEndAt").value = isoToLocalInputValue(cfg.endAt);
+          document.getElementById("cfgConfirmEmailSubject").value = cfg.confirmEmailSubject || "";
+          document.getElementById("cfgConfirmEmailBody").value = cfg.confirmEmailBody || "";
+          const preview = document.getElementById("logoPreview");
+          preview.src = cfg.logoUrl || "icon.svg";
+
+          document.getElementById("cfgSendCertAuto").checked = !!cfg.sendCertAuto;
+          setNote("certNote", cfg.certTemplateReady
+            ? `التيمبلت الحالي: ${cfg.certTemplateName || "(بدون اسم)"} ✓`
+            : "لسه مفيش تيمبلت شهادة متحمل.", cfg.certTemplateReady ? "ok" : "");
+
+          renderFieldConfigTable(cfg.fieldConfig || {}, cfg.fieldDefs || {}, cfg.fieldSections || {});
+          renderCustomFieldsTable(cfg.customFields || []);
+          renderSuccessActionsTable(cfg.successActions || []);
+        })
+        .catch(() => setNote("configNote", "تعذر تحميل الإعدادات الحالية", "err"));
+    }
+
+    // ==================== Form/tenant switcher ====================
+    // Populates #formSwitcher with every form this login can see (the
+    // default form + anything created via "➕ فورم جديد" — see
+    // handleListForms_/handleAddForm_ in Code.gs), and reloads EVERYTHING
+    // (table data, cycles list, settings tab) whenever the selection changes.
+    function loadFormsList(selectId) {
+      const select = document.getElementById("formSwitcher");
+      const includeArchived = document.getElementById("showArchivedFormsToggle").checked ? "1" : "0";
+      return fetch(`${SCRIPT_URL}?action=listForms&password=${encodeURIComponent(currentPassword)}&includeArchived=${includeArchived}&_=${Date.now()}`, { cache: "no-store" })
+        .then(r => r.json())
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          allForms = res.forms && res.forms.length ? res.forms : allForms;
+          select.innerHTML = "";
+          allForms.forEach(f => {
+            const opt = document.createElement("option");
+            opt.value = f.id;
+            opt.textContent = f.isDefault ? `${f.name} (الأساسي)` : (f.archived ? `${f.name} (مؤرشف)` : f.name);
+            select.appendChild(opt);
+          });
+          const wanted = typeof selectId === "string" ? selectId : currentFormId;
+          select.value = allForms.some(f => f.id === wanted) ? wanted : "";
+          currentFormId = select.value;
+        })
+        .catch(() => { /* not fatal — the dashboard still works on the default form */ });
+    }
+
+    document.getElementById("showArchivedFormsToggle").addEventListener("change", () => loadFormsList(currentFormId));
+
+    // Switches which form the WHOLE dashboard is looking at, then reloads
+    // the table + cycles + settings for it (mirrors what happens right
+    // after login, just re-triggered on demand).
+    function switchForm_(formId) {
+      currentFormId = formId;
+      currentSheetName = ""; // "" = that form's own currently-active cycle
+      fetchData(currentPassword, "")
+        .then(() => { populateFilters(); renderAll(); })
+        .catch(() => toast("تعذر تحميل بيانات الفورم ده"));
+      loadCycles();
+      if (settingsLoadedOnce) loadConfigForm();
+    }
+
+    document.getElementById("formSwitcher").addEventListener("change", (e) => switchForm_(e.target.value));
+
+    document.getElementById("addFormBtn").addEventListener("click", () => {
+      const name = prompt("اسم الفورم الجديد؟ (مثلاً: تسجيل حدث كذا)");
+      if (!name || !name.trim()) return;
+      postAdmin({ action: "addForm", name: name.trim() })
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          toast(`اتعمل فورم "${name.trim()}" ✓`);
+          return loadFormsList(res.form.id);
+        })
+        .then(() => switchForm_(currentFormId))
+        .catch(err => toast("فشل إنشاء الفورم: " + err.message));
+    });
+
+    document.getElementById("renameFormBtn").addEventListener("click", () => {
+      const current = allForms.find(f => f.id === currentFormId);
+      const name = prompt("الاسم الجديد للفورم؟", current ? current.name : "");
+      if (!name || !name.trim()) return;
+      postAdmin({ action: "renameForm", formId: currentFormId, name: name.trim() })
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          toast("اتغيّر الاسم ✓");
+          return loadFormsList(currentFormId);
+        })
+        .catch(err => toast("فشل تغيير الاسم: " + err.message));
+    });
+
+    // Archives (hides) or unarchives the currently-selected form. The
+    // default form can't be archived — nothing to toggle for it.
+    document.getElementById("archiveFormBtn").addEventListener("click", () => {
+      if (!currentFormId) { toast("الفورم الأساسي مينفعش يتأرشف"); return; }
+      const current = allForms.find(f => f.id === currentFormId);
+      const willArchive = !(current && current.archived);
+      const msg = willArchive
+        ? `متأكد عايز تأرشف "${current ? current.name : ""}"؟ هيختفي من القايمة بس بياناته وشيتاته هتفضل موجودة زي ما هي.`
+        : `تلغي أرشفة "${current ? current.name : ""}"؟`;
+      if (!confirm(msg)) return;
+      postAdmin({ action: "archiveForm", formId: currentFormId, archived: willArchive })
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          toast(willArchive ? "اتأرشف الفورم ✓" : "اتلغت الأرشفة ✓");
+          // If we just archived the form we were LOOKING at (and we're not
+          // showing archived forms), fall back to the default form so the
+          // dashboard doesn't stay pointed at something now hidden.
+          const nextId = willArchive && !document.getElementById("showArchivedFormsToggle").checked ? "" : currentFormId;
+          return loadFormsList(nextId).then(() => switchForm_(currentFormId));
+        })
+        .catch(err => toast("فشل: " + err.message));
+    });
+
+    // Builds the public link for whichever form is selected — assumes
+    // dys_form.html is hosted in the SAME folder as this dashboard (the
+    // normal setup, since both files are deployed together).
+    function buildFormLink_() {
+      const url = new URL("dys_form.html", window.location.href);
+      if (currentFormId) url.searchParams.set("form", currentFormId);
+      return url.toString();
+    }
+
+    document.getElementById("copyFormLinkBtn").addEventListener("click", () => {
+      const link = buildFormLink_();
+      navigator.clipboard.writeText(link)
+        .then(() => toast("اتنسخ لينك الفورم ✓"))
+        .catch(() => prompt("انسخ اللينك يدويًا:", link));
+    });
+
+    // Opens a QR code image (generated by the same free service used for
+    // certificate QR codes — api.qrserver.com) encoding this form's link, in
+    // a new tab — right-click ▸ حفظ الصورة to save/print it.
+    document.getElementById("showFormQrBtn").addEventListener("click", () => {
+      const link = buildFormLink_();
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(link)}`;
+      window.open(qrUrl, "_blank");
+    });
+
+    // ---- Form field visibility/required toggles ----
+    // The original 9 fields (fixed section/label — these have bespoke UI on
+    // the form itself, e.g. radio pills, so they're not driven by fieldDefs
+    // the way the newer "extra" fields are).
+    const BUILTIN_FIELD_LABELS = {
+      age: { section: "personal", label: "العمر" },
+      gender: { section: "personal", label: "النوع" },
+      phone: { section: "contact", label: "رقم الهاتف" },
+      whatsapp: { section: "contact", label: "رقم الواتساب" },
+      email: { section: "contact", label: "البريد الإلكتروني" },
+      faculty: { section: "education", label: "الكلية / المدرسة" },
+      graduate: { section: "education", label: "هل خريج؟" },
+      committee: { section: "entity", label: "الصفة داخل الكيان" },
+      hasJob: { section: "education", label: "هل يعمل حاليًا؟" },
+    };
+    const SECTION_ORDER = ["personal", "education", "contact", "entity", "other"];
+    let latestFieldSections = {};
+
+    function renderFieldConfigTable(fieldConfig, fieldDefs, fieldSections) {
+      latestFieldSections = fieldSections;
+      // Merge the 9 fixed fields + server-provided "extra" field defs into one list, grouped by section.
+      const allFields = Object.assign({}, BUILTIN_FIELD_LABELS);
+      Object.keys(fieldDefs).forEach(key => {
+        allFields[key] = { section: fieldDefs[key].section, label: fieldDefs[key].label };
+      });
+
+      const container = document.getElementById("fieldConfigSections");
+      container.innerHTML = SECTION_ORDER.map(sectionKey => {
+        const keysInSection = Object.keys(allFields)
+          .filter(k => allFields[k].section === sectionKey)
+          .sort((a, b) => (fieldConfig[a] ? fieldConfig[a].order : 0) - (fieldConfig[b] ? fieldConfig[b].order : 0));
+        if (!keysInSection.length) return "";
+        const rows = keysInSection.map(key => {
+          const conf = fieldConfig[key] || { enabled: true, required: false };
+          return `<tr data-field="${key}" draggable="true" class="draggable-row">
+            <td class="drag-handle" title="اسحب لإعادة الترتيب">⠿</td>
+            <td>${allFields[key].label}</td>
+            <td><input type="checkbox" class="fld-enabled" ${conf.enabled ? "checked" : ""}></td>
+            <td><input type="checkbox" class="fld-required" ${conf.required ? "checked" : ""} ${conf.enabled ? "" : "disabled"}></td>
+          </tr>`;
+        }).join("");
+        return `<div style="margin-top:14px;">
+          <h4 style="margin:0 0 6px; font-size:13px; color:#9fd8ab;">${fieldSections[sectionKey] || sectionKey}</h4>
+          <div class="mini-table-scroll">
+            <table class="field-config-table">
+              <thead><tr><th></th><th>الحقل</th><th>ظاهر</th><th>إجباري</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>`;
+      }).join("");
+
+      container.querySelectorAll("tbody tr").forEach(tr => {
+        const enabledBox = tr.querySelector(".fld-enabled");
+        const requiredBox = tr.querySelector(".fld-required");
+        enabledBox.addEventListener("change", () => {
+          requiredBox.disabled = !enabledBox.checked;
+          if (!enabledBox.checked) requiredBox.checked = false;
+        });
+      });
+
+      enableDragReorder_(container);
+    }
+
+    // Native HTML5 drag-and-drop, scoped to reordering rows WITHIN the same
+    // <tbody> only (dragging a field into a different section doesn't make
+    // sense — sections are fixed categories, not something you reassign a
+    // field into by dragging).
+    function enableDragReorder_(container) {
+      let draggedRow = null;
+      container.querySelectorAll("tr.draggable-row").forEach(row => {
+        row.addEventListener("dragstart", () => { draggedRow = row; row.classList.add("dragging"); });
+        row.addEventListener("dragend", () => { row.classList.remove("dragging"); draggedRow = null; });
+        row.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          if (!draggedRow || draggedRow === row || draggedRow.parentElement !== row.parentElement) return;
+          // A draggable row can have a paired non-draggable sub-row right
+          // after it (e.g. a custom field's "شرط ظهور" condition panel) —
+          // keep that pair together instead of leaving the panel behind.
+          const partner = draggedRow.nextElementSibling && !draggedRow.nextElementSibling.classList.contains("draggable-row")
+            ? draggedRow.nextElementSibling : null;
+          const rect = row.getBoundingClientRect();
+          const before = (e.clientY - rect.top) < rect.height / 2;
+          row.parentElement.insertBefore(draggedRow, before ? row : row.nextSibling);
+          if (partner) row.parentElement.insertBefore(partner, draggedRow.nextSibling);
+        });
+      });
+    }
+
+    function collectFieldConfig_() {
+      const fields = {};
+      let order = 0;
+      document.querySelectorAll("#fieldConfigSections tr[data-field]").forEach(tr => {
+        fields[tr.dataset.field] = {
+          enabled: tr.querySelector(".fld-enabled").checked,
+          required: tr.querySelector(".fld-required").checked,
+          order: order++,
+        };
+      });
+      return fields;
+    }
+
+    // ---- Custom fields (admin-defined, unlimited) ----
+    let latestCustomFields = [];
+    let latestSuccessActions = [];
+    const SUCCESS_ACTION_TYPE_LABELS = {
+      whatsapp_chat: "واتساب (تواصل مباشر)", whatsapp_group: "واتساب (جروب)",
+      telegram: "تليجرام", facebook: "فيسبوك", instagram: "إنستجرام", link: "لينك عام",
+    };
+    const SUCCESS_ACTION_VALUE_HINTS = {
+      whatsapp_chat: { placeholder: "رقم واتساب بالصيغة الدولية بدون + أو 00 (مثلاً 201xxxxxxxxx)", hint: `لنوع "واتساب — تواصل مباشر" حط رقم الواتساب بس (بدون + أو 00 وبدون مسافات)، مثلاً <code>201234567890</code> — هيتفتح تلقائي برسالة فيها اسم العضو ورقم عضويته.` },
+      whatsapp_group: { placeholder: "لينك جروب/كوميونيتي الواتساب (chat.whatsapp.com/... أو whatsapp.com/channel/...)", hint: "الصق لينك دعوة الجروب زي ما هو من واتساب." },
+      telegram: { placeholder: "لينك التليجرام (t.me/...)", hint: "الصق لينك القروب/القناة على تليجرام." },
+      facebook: { placeholder: "لينك صفحة/جروب الفيسبوك", hint: "الصق لينك الصفحة أو الجروب على فيسبوك." },
+      instagram: { placeholder: "لينك حساب الإنستجرام", hint: "الصق لينك البروفايل على إنستجرام." },
+      link: { placeholder: "أي لينك (https://...)", hint: "أي لينك تاني عايز تظهره كزرار — درايف، فورم، موقع، إلخ." },
+    };
+
+    const CUSTOM_TYPE_LABELS = { text: "نص قصير", textarea: "نص طويل", number: "رقم", date: "تاريخ", select: "قائمة اختيار", checkbox: "نعم / لا" };
+
+    function renderCustomFieldsTable(customFields) {
+      latestCustomFields = customFields;
+      const table = document.getElementById("customFieldsTable");
+      const body = document.getElementById("customFieldsBody");
+      if (!customFields.length) { table.style.display = "none"; body.innerHTML = ""; return; }
+      table.style.display = "";
+
+      // A field can only depend on an already-saved field (real key, not a
+      // "_tmp_..." one that only exists in this unsaved session) — you add
+      // "عضو في الكيان" first, save, THEN add "اللجان" and point it at the
+      // now-real key. Keeps this simple instead of resolving forward refs.
+      const dependableFields = customFields.filter(cf => !cf.key.startsWith("_tmp_"));
+
+      function valueControlHtml_(forCf, currentValue) {
+        const target = dependableFields.find(cf => cf.key === (forCf.dependsOnKey || ""));
+        if (target && target.type === "checkbox") {
+          return `<select class="cf-depends-value">
+            <option value="Yes" ${currentValue === "Yes" ? "selected" : ""}>نعم</option>
+            <option value="No" ${currentValue === "No" ? "selected" : ""}>لا</option>
+          </select>`;
+        }
+        if (target && target.type === "select" && target.options) {
+          return `<select class="cf-depends-value">` +
+            target.options.map(o => `<option value="${o}" ${currentValue === o ? "selected" : ""}>${o}</option>`).join("") +
+            `</select>`;
+        }
+        return `<input type="text" class="cf-depends-value" placeholder="القيمة" value="${currentValue || ""}">`;
+      }
+
+      body.innerHTML = customFields.map((cf) => {
+        const hasCondition = !!cf.dependsOnKey;
+        const dependsOptionsHtml = `<option value="">بدون شرط (يظهر دايمًا)</option>` +
+          dependableFields.filter(f => f.key !== cf.key).map(f =>
+            `<option value="${f.key}" ${cf.dependsOnKey === f.key ? "selected" : ""}>${f.label}</option>`
+          ).join("");
+        return `
+        <tr data-key="${cf.key}" draggable="true" class="draggable-row">
+          <td class="drag-handle" title="اسحب لإعادة الترتيب">⠿</td>
+          <td>${cf.label} <span class="hint">(${CUSTOM_TYPE_LABELS[cf.type] || cf.type})</span></td>
+          <td><code style="font-size:11px; opacity:.8;">${cf.key.startsWith("_tmp_") ? "(هيتحدد بعد الحفظ)" : "{{" + cf.key + "}}"}</code></td>
+          <td><input type="checkbox" class="cf-enabled" ${cf.enabled ? "checked" : ""}></td>
+          <td><input type="checkbox" class="cf-required" ${cf.required ? "checked" : ""}></td>
+          <td style="white-space:nowrap;">
+            <button type="button" class="settings-btn muted cf-condition-toggle-btn" style="padding:2px 10px; font-size:12px;" title="اظهار الحقل ده بس لو حقل تاني اتجاوب بقيمة معينة">${hasCondition ? "🔀 شرط محدد" : "🔀 شرط"}</button>
+            <button type="button" class="settings-btn muted remove-custom-field-btn" style="padding:2px 10px; font-size:12px;">حذف</button>
+          </td>
+        </tr>
+        <tr class="cf-condition-row" data-key-for="${cf.key}" style="${hasCondition ? "" : "display:none;"}">
+          <td colspan="6">
+            <div class="cf-condition-panel">
+              <span class="hint">يظهر بس لو</span>
+              <select class="cf-depends-key">${dependsOptionsHtml}</select>
+              <span class="hint">=</span>
+              <span class="cf-depends-value-wrap">${valueControlHtml_(cf, cf.dependsOnValue)}</span>
+            </div>
+          </td>
+        </tr>`;
+      }).join("");
+
+      body.querySelectorAll(".remove-custom-field-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const key = btn.closest("tr").dataset.key;
+          latestCustomFields = latestCustomFields.filter(cf => cf.key !== key);
+          // Also clear any OTHER field's dependency that pointed at the one
+          // just removed — otherwise it'd point at nothing and just stay
+          // hidden forever with no visible way to fix it.
+          latestCustomFields.forEach(cf => { if (cf.dependsOnKey === key) { cf.dependsOnKey = ""; cf.dependsOnValue = ""; } });
+          renderCustomFieldsTable(latestCustomFields);
+        });
+      });
+
+      body.querySelectorAll(".cf-condition-toggle-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const key = btn.closest("tr").dataset.key;
+          const row = body.querySelector(`.cf-condition-row[data-key-for="${key}"]`);
+          row.style.display = row.style.display === "none" ? "" : "none";
+        });
+      });
+
+      // Changing WHICH field this depends on changes what kind of value
+      // picker makes sense (Yes/No, its option list, or free text) — rebuild
+      // just that one value control in place.
+      body.querySelectorAll(".cf-depends-key").forEach(sel => {
+        sel.addEventListener("change", () => {
+          const key = sel.closest(".cf-condition-row").dataset.keyFor;
+          const cf = customFields.find(c => c.key === key);
+          const fakeCf = { dependsOnKey: sel.value };
+          sel.closest(".cf-condition-panel").querySelector(".cf-depends-value-wrap").innerHTML = valueControlHtml_(fakeCf, "");
+        });
+      });
+
+      enableDragReorder_(body.closest("table"));
+    }
+
+    function collectCustomFields_() {
+      const byKey = {};
+      latestCustomFields.forEach(cf => { byKey[cf.key] = cf; });
+      // DOM order (post-drag) IS the desired save order — map each row back
+      // to its original object by key, not position, since dragging moves
+      // rows without touching latestCustomFields until this collect step.
+      return Array.from(document.querySelectorAll("#customFieldsBody tr.draggable-row")).map(tr => {
+        const cf = byKey[tr.dataset.key];
+        if (!cf) return null;
+        const conditionRow = document.querySelector(`.cf-condition-row[data-key-for="${tr.dataset.key}"]`);
+        const dependsOnKey = conditionRow ? conditionRow.querySelector(".cf-depends-key").value : "";
+        return Object.assign({}, cf, {
+          enabled: tr.querySelector(".cf-enabled").checked,
+          required: tr.querySelector(".cf-required").checked,
+          dependsOnKey,
+          dependsOnValue: dependsOnKey && conditionRow ? conditionRow.querySelector(".cf-depends-value").value : "",
+        });
+      }).filter(Boolean);
+    }
+
+    document.getElementById("newCustomFieldType").addEventListener("change", (e) => {
+      document.getElementById("newCustomFieldOptions").style.display = e.target.value === "select" ? "" : "none";
+    });
+
+    document.getElementById("addCustomFieldBtn").addEventListener("click", () => {
+      const label = document.getElementById("newCustomFieldLabel").value.trim();
+      const type = document.getElementById("newCustomFieldType").value;
+      const optionsRaw = document.getElementById("newCustomFieldOptions").value.trim();
+      if (!label) { setNote("fieldConfigNote", "لازم تكتب اسم الحقل الأول.", "err"); return; }
+      const newField = { key: "_tmp_" + Date.now() + "_" + Math.random().toString(36).slice(2), label, type, required: false, enabled: true };
+      if (type === "select") newField.options = optionsRaw.split(",").map(s => s.trim()).filter(Boolean);
+      latestCustomFields.push(newField);
+      renderCustomFieldsTable(latestCustomFields);
+      document.getElementById("newCustomFieldLabel").value = "";
+      document.getElementById("newCustomFieldOptions").value = "";
+      setNote("fieldConfigNote", `حقل "${label}" اتضاف — دوس "حفظ إعدادات الحقول" تحت عشان يتأكد ويظهر ليه كود.`, "ok");
+    });
+
+    document.getElementById("saveFieldConfigBtn").addEventListener("click", () => {
+      const btn = document.getElementById("saveFieldConfigBtn");
+      const fields = collectFieldConfig_();
+      const customFields = collectCustomFields_();
+      btn.disabled = true;
+      setNote("fieldConfigNote", "جاري الحفظ...");
+      postAdmin({ action: "saveFieldConfig", fields, customFields })
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          setNote("fieldConfigNote", "اتحفظت إعدادات الحقول ✓ — سرت مباشرة على استمارة التسجيل", "ok");
+          toast("اتحفظت إعدادات الحقول ✓");
+          // refetch + re-render from what the SERVER now has saved — proves it
+          // actually persisted, and picks up real {{keys}} for new custom fields
+          loadConfigForm();
+        })
+        .catch(err => setNote("fieldConfigNote", "حصل خطأ: " + err.message, "err"))
+        .finally(() => { btn.disabled = false; });
+    });
+
+    // ---- Post-registration success-screen buttons ----
+    function renderSuccessActionsTable(actions) {
+      latestSuccessActions = actions;
+      const table = document.getElementById("successActionsTable");
+      const body = document.getElementById("successActionsBody");
+      if (!actions.length) { table.style.display = "none"; body.innerHTML = ""; return; }
+      table.style.display = "";
+
+      body.innerHTML = actions.map((a) => `
+        <tr data-id="${a.id}">
+          <td>${SUCCESS_ACTION_TYPE_LABELS[a.type] || a.type}</td>
+          <td><input type="text" class="sa-label" value="${(a.label || "").replace(/"/g, "&quot;")}"></td>
+          <td><input type="text" class="sa-value" value="${(a.value || "").replace(/"/g, "&quot;")}"></td>
+          <td><input type="checkbox" class="sa-enabled" ${a.enabled !== false ? "checked" : ""}></td>
+          <td><button type="button" class="settings-btn muted remove-success-action-btn" style="padding:2px 10px; font-size:12px;">حذف</button></td>
+        </tr>`).join("");
+
+      body.querySelectorAll(".remove-success-action-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.closest("tr").dataset.id;
+          latestSuccessActions = latestSuccessActions.filter(a => a.id !== id);
+          renderSuccessActionsTable(latestSuccessActions);
+        });
+      });
+    }
+
+    function collectSuccessActionsFromUI() {
+      const byId = {};
+      latestSuccessActions.forEach(a => { byId[a.id] = a; });
+      return Array.from(document.querySelectorAll("#successActionsBody tr")).map(tr => {
+        const a = byId[tr.dataset.id];
+        if (!a) return null;
+        return Object.assign({}, a, {
+          label: tr.querySelector(".sa-label").value.trim(),
+          value: tr.querySelector(".sa-value").value.trim(),
+          enabled: tr.querySelector(".sa-enabled").checked,
+        });
+      }).filter(a => a && a.label && a.value);
+    }
+
+    document.getElementById("newSuccessActionType").addEventListener("change", (e) => {
+      const info = SUCCESS_ACTION_VALUE_HINTS[e.target.value] || SUCCESS_ACTION_VALUE_HINTS.link;
+      document.getElementById("newSuccessActionValue").placeholder = info.placeholder;
+      document.getElementById("newSuccessActionHint").innerHTML = info.hint;
+    });
+
+    document.getElementById("addSuccessActionBtn").addEventListener("click", () => {
+      const type = document.getElementById("newSuccessActionType").value;
+      const label = document.getElementById("newSuccessActionLabel").value.trim();
+      const value = document.getElementById("newSuccessActionValue").value.trim();
+      if (!label || !value) { setNote("successActionsNote", "لازم تكتب النص والرقم/اللينك الأول.", "err"); return; }
+      latestSuccessActions.push({ id: "_tmp_" + Date.now() + "_" + Math.random().toString(36).slice(2), type, label, value, enabled: true });
+      renderSuccessActionsTable(latestSuccessActions);
+      document.getElementById("newSuccessActionLabel").value = "";
+      document.getElementById("newSuccessActionValue").value = "";
+      setNote("successActionsNote", `زرار "${label}" اتضاف — دوس "حفظ خيارات بعد التسجيل" تحت عشان يتأكد.`, "ok");
+    });
+
+    document.getElementById("saveSuccessActionsBtn").addEventListener("click", () => {
+      const btn = document.getElementById("saveSuccessActionsBtn");
+      btn.disabled = true;
+      setNote("successActionsNote", "جاري الحفظ...");
+      postAdmin(Object.assign(collectConfigPayload(), { startNewCycle: false, successActions: collectSuccessActionsFromUI() }))
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          setNote("successActionsNote", "اتحفظت خيارات بعد التسجيل ✓ — سرت مباشرة على استمارة التسجيل", "ok");
+          toast("اتحفظت خيارات بعد التسجيل ✓");
+          loadConfigForm();
+        })
+        .catch(err => setNote("successActionsNote", "حصل خطأ: " + err.message, "err"))
+        .finally(() => { btn.disabled = false; });
+    });
+
+    document.getElementById("runDiagnosticsBtn").addEventListener("click", () => {
+      const btn = document.getElementById("runDiagnosticsBtn");
+      const out = document.getElementById("diagnosticsOutput");
+      btn.disabled = true;
+      out.style.display = "block";
+      out.textContent = "جاري التشخيص...";
+      fetch(`${SCRIPT_URL}?action=diagnostics&password=${encodeURIComponent(currentPassword)}&_=${Date.now()}`, { cache: "no-store" })
+        .then(r => r.json())
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          out.textContent = JSON.stringify(res.report, null, 2);
+        })
+        .catch(err => { out.textContent = "حصل خطأ في التشخيص نفسه: " + err.message; })
+        .finally(() => { btn.disabled = false; });
+    });
+
+    // ---- Admin accounts (login credentials + role) ----
+    function loadAccountsTable() {
+      const body = document.getElementById("accountsBody");
+      postAdmin({ action: "listAdminAccounts" })
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          renderAccountsTable(res.accounts);
+        })
+        .catch(err => { body.innerHTML = `<tr><td colspan="3">تعذر التحميل: ${err.message}</td></tr>`; });
+    }
+
+    const PERMISSION_LABELS = {
+      manageSettings: "إعدادات عامة",
+      manageFields: "حقول الاستمارة",
+      manageCertificates: "الشهادات",
+      manageAccounts: "إدارة الحسابات",
+    };
+
+    function describePermissions_(permissions) {
+      const granted = Object.keys(PERMISSION_LABELS).filter(key => permissions && permissions[key]);
+      if (!granted.length) return "عرض بس";
+      if (granted.length === Object.keys(PERMISSION_LABELS).length) return "كل الصلاحيات";
+      return granted.map(key => PERMISSION_LABELS[key]).join("، ");
+    }
+
+    function renderAccountsTable(accounts) {
+      const body = document.getElementById("accountsBody");
+      accounts = Array.isArray(accounts) ? accounts : [];
+      if (!accounts.length) {
+        body.innerHTML = `<tr><td colspan="4">مفيش حسابات مسجلة</td></tr>`;
+        return;
+      }
+      const permKeys = Object.keys(PERMISSION_LABELS);
+      body.innerHTML = accounts.map(a => {
+        const isPending = a.status === "pending";
+        const isLegacyOwner = a.name === "الحساب الأساسي"; // always full-owner, never editable — see handleUpdateAccountPermissions_
+        const permsCell = isPending
+          ? "طلب دخول بحساب جوجل — لسه من غير صلاحيات"
+          : isLegacyOwner
+            ? "كل الصلاحيات (كلمة السر القديمة — دايمًا مالك كامل)"
+            : `<div class="perm-checks">${permKeys.map(key => `
+                <label><input type="checkbox" class="perm-cb" data-perm="${key}" ${a.permissions && a.permissions[key] ? "checked" : ""}> ${PERMISSION_LABELS[key]}</label>
+              `).join("")}</div>`;
+        const actionCell = isPending
+          ? `<button type="button" class="settings-btn primary approve-account-btn" style="padding:2px 10px; font-size:12px;">قبول</button>
+             <button type="button" class="settings-btn muted reject-account-btn" style="padding:2px 10px; font-size:12px;">رفض</button>`
+          : isLegacyOwner
+            ? ""
+            : `<button type="button" class="settings-btn primary save-perms-btn" style="padding:2px 10px; font-size:12px;">حفظ</button>
+               <button type="button" class="settings-btn muted remove-account-btn" style="padding:2px 10px; font-size:12px;">حذف</button>`;
+        return `
+        <tr data-name="${a.name.replace(/"/g, "&quot;")}" data-email="${(a.email || "").replace(/"/g, "&quot;")}">
+          <td>${a.name}${isPending ? ' <span style="color:#c9a227;">(بانتظار الموافقة)</span>' : ""}</td>
+          <td style="direction:ltr; text-align:end;">${a.email || "—"}</td>
+          <td>${permsCell}</td>
+          <td style="white-space:nowrap;">${actionCell}</td>
+        </tr>`;
+      }).join("");
+      body.querySelectorAll(".remove-account-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const name = btn.closest("tr").dataset.name;
+          const ok = confirm(`هتمسح حساب "${name}"؟ هو مش هيقدر يدخل تاني.`);
+          if (!ok) return;
+          postAdmin({ action: "removeAdminAccount", name })
+            .then(res => {
+              if (res.status !== "success") throw new Error(res.message || "error");
+              renderAccountsTable(res.accounts);
+              toast("اتمسح الحساب ✓");
+            })
+            .catch(err => setNote("accountsNote", "حصل خطأ: " + err.message, "err"));
+        });
+      });
+      body.querySelectorAll(".save-perms-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const tr = btn.closest("tr");
+          const name = tr.dataset.name;
+          const permissions = {};
+          tr.querySelectorAll(".perm-cb").forEach(cb => { permissions[cb.dataset.perm] = cb.checked; });
+          btn.disabled = true;
+          postAdmin({ action: "updateAccountPermissions", name, permissions })
+            .then(res => {
+              if (res.status !== "success") throw new Error(res.message || "error");
+              renderAccountsTable(res.accounts);
+              toast(`اتحدثت صلاحيات "${name}" ✓`);
+            })
+            .catch(err => setNote("accountsNote", "حصل خطأ: " + err.message, "err"))
+            .finally(() => { btn.disabled = false; });
+        });
+      });
+      body.querySelectorAll(".approve-account-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const email = btn.closest("tr").dataset.email;
+          postAdmin({ action: "reviewAccess", email, approve: true })
+            .then(res => {
+              if (res.status !== "success") throw new Error(res.message || "error");
+              renderAccountsTable(res.accounts);
+              toast("اتوافق على الدخول ✓ — حدد صلاحياته دلوقتي وادوس حفظ");
+            })
+            .catch(err => setNote("accountsNote", "حصل خطأ: " + err.message, "err"));
+        });
+      });
+      body.querySelectorAll(".reject-account-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const email = btn.closest("tr").dataset.email;
+          if (!confirm(`ترفض طلب دخول ${email}؟`)) return;
+          postAdmin({ action: "reviewAccess", email, approve: false })
+            .then(res => {
+              if (res.status !== "success") throw new Error(res.message || "error");
+              renderAccountsTable(res.accounts);
+              toast("اترفض الطلب");
+            })
+            .catch(err => setNote("accountsNote", "حصل خطأ: " + err.message, "err"));
+        });
+      });
+    }
+
+    document.getElementById("addAccountBtn").addEventListener("click", () => {
+      const name = document.getElementById("newAccountName").value.trim();
+      const password = document.getElementById("newAccountPassword").value.trim();
+      const permissions = {
+        manageSettings: document.getElementById("permManageSettings").checked,
+        manageFields: document.getElementById("permManageFields").checked,
+        manageCertificates: document.getElementById("permManageCertificates").checked,
+        manageAccounts: document.getElementById("permManageAccounts").checked,
+      };
+      if (!name || !password) {
+        setNote("accountsNote", "لازم تكتب اسم وكلمة سر.", "err");
+        return;
+      }
+      const btn = document.getElementById("addAccountBtn");
+      btn.disabled = true;
+      setNote("accountsNote", "جاري الإضافة...");
+      postAdmin({ action: "addAdminAccount", name, newPassword: password, permissions })
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          renderAccountsTable(res.accounts);
+          document.getElementById("newAccountName").value = "";
+          document.getElementById("newAccountPassword").value = "";
+          ["permManageSettings", "permManageFields", "permManageCertificates", "permManageAccounts"]
+            .forEach(id => { document.getElementById(id).checked = false; });
+          setNote("accountsNote", `اتضاف حساب "${name}" (${describePermissions_(permissions)}) ✓ — ابعتله كلمة السر بره الداشبورد (واتساب/رسالة مباشرة، مش هنا).`, "ok");
+          toast("اتضاف الحساب ✓");
+        })
+        .catch(err => setNote("accountsNote", "حصل خطأ: " + err.message, "err"))
+        .finally(() => { btn.disabled = false; });
+    });
+
+    function collectConfigPayload() {
+      const startVal = document.getElementById("cfgStartAt").value; // "" or "YYYY-MM-DDTHH:mm"
+      const endVal = document.getElementById("cfgEndAt").value;
+      return {
+        action: "saveConfig",
+        formTitle: document.getElementById("cfgFormTitle").value.trim(),
+        sheetBaseName: document.getElementById("cfgSheetBaseName").value.trim(),
+        membershipPrefix: document.getElementById("cfgMembershipPrefix").value.trim(),
+        startAt: startVal ? new Date(startVal).toISOString() : "",
+        endAt: endVal ? new Date(endVal).toISOString() : "",
+        confirmEmailSubject: document.getElementById("cfgConfirmEmailSubject").value.trim(),
+        confirmEmailBody: document.getElementById("cfgConfirmEmailBody").value.trim(),
+        sendCertAuto: document.getElementById("cfgSendCertAuto").checked,
+        // Always sent (even from the other save buttons on this tab) so this
+        // list never gets silently overwritten by an unrelated save — it just
+        // reflects whatever's currently in the table.
+        successActions: collectSuccessActionsFromUI(),
+      };
+    }
+
+    document.getElementById("saveConfigBtn").addEventListener("click", () => {
+      const btn = document.getElementById("saveConfigBtn");
+      btn.disabled = true;
+      setNote("configNote", "جاري الحفظ...");
+      postAdmin(Object.assign(collectConfigPayload(), { startNewCycle: false }))
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          setNote("configNote", "اتحفظ ✓", "ok");
+          toast("اتحفظت الإعدادات ✓");
+          loadCycles();
+        })
+        .catch(err => setNote("configNote", "حصل خطأ: " + err.message, "err"))
+        .finally(() => { btn.disabled = false; });
+    });
+
+    document.getElementById("newCycleBtn").addEventListener("click", () => {
+      const base = document.getElementById("cfgSheetBaseName").value.trim() || "Registrations";
+      const ok = confirm(
+        `هيتعمل تبويب/شيت جديد باسم مبني على "${base}"، وهيبقى ده اللي التسجيلات الجديدة بتتسجل فيه.\n` +
+        `بيانات الدورة اللي فاتت هتفضل زي ما هي، من غير أي تعديل.\nمتابعة؟`
+      );
+      if (!ok) return;
+      const btn = document.getElementById("newCycleBtn");
+      btn.disabled = true;
+      setNote("configNote", "جاري إنشاء الدورة الجديدة...");
+      postAdmin(Object.assign(collectConfigPayload(), { startNewCycle: true }))
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          setNote("configNote", `اتعمل شيت جديد: ${res.config.activeSheetName} ✓`, "ok");
+          toast("بدأت دورة تسجيل جديدة ✓");
+          currentSheetName = ""; // follow the new active cycle
+          loadCycles();
+          fetchData(currentPassword, "").then(() => { populateFilters(); renderAll(); });
+        })
+        .catch(err => setNote("configNote", "حصل خطأ: " + err.message, "err"))
+        .finally(() => { btn.disabled = false; });
+    });
+
+    // ---- Certificate auto-send toggle (saves itself immediately) ----
+    document.getElementById("cfgSendCertAuto").addEventListener("change", () => {
+      postAdmin(Object.assign(collectConfigPayload(), { startNewCycle: false }))
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          toast(res.config.sendCertAuto ? "الإرسال الأوتوماتيك للشهادة اتشغّل ✓" : "الإرسال الأوتوماتيك للشهادة اتقفل ✓");
+        })
+        .catch(err => toast("حصل خطأ: " + err.message));
+    });
+
+    // ---- Certificate template upload (.docx) ----
+    let pendingCertFile = null; // {base64, mimeType, fileName}
+    const certFileInput = document.getElementById("certFileInput");
+    const uploadCertBtn = document.getElementById("uploadCertBtn");
+
+    certFileInput.addEventListener("change", () => {
+      const file = certFileInput.files && certFileInput.files[0];
+      pendingCertFile = null;
+      uploadCertBtn.disabled = true;
+      if (!file) return;
+      if (!/\.docx$/i.test(file.name)) {
+        setNote("certNote", "لازم يكون ملف .docx", "err");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        pendingCertFile = { dataUrl: reader.result, fileName: file.name };
+        uploadCertBtn.disabled = false;
+        setNote("certNote", `جاهز للرفع: ${file.name}`);
+      };
+      reader.onerror = () => setNote("certNote", "تعذرت قراءة الملف", "err");
+      reader.readAsDataURL(file);
+    });
+
+    uploadCertBtn.addEventListener("click", () => {
+      if (!pendingCertFile) return;
+      uploadCertBtn.disabled = true;
+      setNote("certNote", "جاري رفع التيمبلت...");
+      postAdmin({
+        action: "uploadCertTemplate",
+        fileBase64: pendingCertFile.dataUrl,
+        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        fileName: pendingCertFile.fileName,
+      })
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          setNote("certNote", `اتحفظ التيمبلت: ${res.fileName} ✓`, "ok");
+          toast("اتحفظ تيمبلت الشهادة ✓");
+          pendingCertFile = null;
+          certFileInput.value = "";
+        })
+        .catch(err => setNote("certNote", "حصل خطأ: " + err.message, "err"))
+        .finally(() => { uploadCertBtn.disabled = true; });
+    });
+
+    document.getElementById("removeCertBtn").addEventListener("click", () => {
+      const ok = confirm("هيتمسح تيمبلت الشهادة الحالي، والإرسال الأوتوماتيك هيتقفل تلقائي. متابعة؟");
+      if (!ok) return;
+      postAdmin({ action: "removeCertTemplate" })
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          setNote("certNote", "اتمسح التيمبلت.", "");
+          document.getElementById("cfgSendCertAuto").checked = false;
+          toast("اتمسح تيمبلت الشهادة ✓");
+        })
+        .catch(err => setNote("certNote", "حصل خطأ: " + err.message, "err"));
+    });
+
+    document.getElementById("certTestBtn").addEventListener("click", () => {
+      const email = document.getElementById("certTestEmail").value.trim();
+      if (!email) { setNote("certNote", "اكتب إيميل الاختبار الأول", "err"); return; }
+      const btn = document.getElementById("certTestBtn");
+      btn.disabled = true;
+      setNote("certNote", "جاري إرسال شهادة تجريبية...");
+      postAdmin({ action: "sendTestCertificate", email })
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          setNote("certNote", res.message, "ok");
+          toast("اترسلت شهادة تجريبية ✓");
+        })
+        .catch(err => setNote("certNote", "حصل خطأ: " + err.message, "err"))
+        .finally(() => { btn.disabled = false; });
+    });
+
+    document.getElementById("certBulkBtn").addEventListener("click", () => {
+      const select = document.getElementById("cycleSelect");
+      const targetSheet = select.value || currentSheetName || activeSheetNameFromServer;
+      if (!targetSheet) { setNote("certBulkNote", "اختار الدورة الأول من فوق", "err"); return; }
+      const ok = confirm(`هيتبعت شهادة لكل عضو معاه إيميل جوه "${targetSheet}". العملية ممكن تاخد وقت لو العدد كبير. متابعة؟`);
+      if (!ok) return;
+      const btn = document.getElementById("certBulkBtn");
+      btn.disabled = true;
+      setNote("certBulkNote", "جاري الإرسال... متقفلش الصفحة دي.");
+      postAdmin({ action: "sendCertificatesBulk", sheet: targetSheet })
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          setNote("certBulkNote",
+            `اترسل: ${res.sent} | فشل: ${res.failed} | من غير إيميل: ${res.skippedNoEmail} | إجمالي: ${res.total}`,
+            "ok");
+          toast(`اترسلت ${res.sent} شهادة ✓`);
+        })
+        .catch(err => setNote("certBulkNote", "حصل خطأ: " + err.message, "err"))
+        .finally(() => { btn.disabled = false; });
+    });
+
+    // ---- Logo upload (resized client-side so the request stays small) ----
+    let pendingLogoDataUrl = null;
+    const logoFileInput = document.getElementById("logoFileInput");
+    const uploadLogoBtn = document.getElementById("uploadLogoBtn");
+
+    logoFileInput.addEventListener("change", () => {
+      const file = logoFileInput.files && logoFileInput.files[0];
+      pendingLogoDataUrl = null;
+      uploadLogoBtn.disabled = true;
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 500;
+          const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          pendingLogoDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+          document.getElementById("logoPreview").src = pendingLogoDataUrl;
+          uploadLogoBtn.disabled = false;
+        };
+        img.onerror = () => setNote("logoNote", "الملف ده مش صورة صالحة", "err");
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    uploadLogoBtn.addEventListener("click", () => {
+      if (!pendingLogoDataUrl) return;
+      uploadLogoBtn.disabled = true;
+      setNote("logoNote", "جاري الرفع...");
+      postAdmin({ action: "uploadLogo", imageBase64: pendingLogoDataUrl, mimeType: "image/jpeg", fileName: "dys-form-logo.jpg" })
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          setNote("logoNote", "اتحفظت الصورة ✓ — هتظهر في الاستمارة من دلوقتي", "ok");
+          toast("اتحفظت صورة الاستمارة ✓");
+          pendingLogoDataUrl = null;
+          logoFileInput.value = "";
+        })
+        .catch(err => setNote("logoNote", "حصل خطأ: " + err.message, "err"))
+        .finally(() => { uploadLogoBtn.disabled = true; });
+    });
+
+    document.getElementById("removeLogoBtn").addEventListener("click", () => {
+      const ok = confirm("هيرجع الشعار الافتراضي بدل الصورة اللي رفعتها. متابعة؟");
+      if (!ok) return;
+      postAdmin({ action: "removeLogo" })
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          document.getElementById("logoPreview").src = "icon.svg";
+          setNote("logoNote", "رجع الشعار الافتراضي ✓", "ok");
+          toast("رجع الشعار الافتراضي ✓");
+        })
+        .catch(err => setNote("logoNote", "حصل خطأ: " + err.message, "err"));
+    });
+
+    // ==================== Charts ====================
+    function destroyCharts() { Object.values(charts).forEach(c => c && c.destroy()); charts = {}; }
+
+    function chartColors() {
+      const dark = document.documentElement.getAttribute("data-theme") === "dark";
+      return {
+        text: dark ? "#e8f0f5" : "#0d2438",
+        grid: dark ? "rgba(255,255,255,.08)" : "rgba(0,0,0,.06)",
+        palette: ["#1668a0", "#f5ab1e", "#0a4b73", "#c0392b", "#8fc7e8", "#c98a0b", "#5b7186", "#0e3c5c"],
+      };
+    }
+
+    function topN(counter, n) {
+      return Object.entries(counter).sort((a, b) => b[1] - a[1]).slice(0, n);
+    }
+
+    function renderCharts() {
+      if (typeof Chart === "undefined") {
+        // Chart.js CDN failed to load (network/ad-blocker/CDN outage) — show
+        // a clear message in every chart slot instead of silent blank boxes.
+        document.querySelectorAll("#chartsPanel canvas").forEach(c => {
+          c.replaceWith(Object.assign(document.createElement("div"), {
+            className: "chart-empty",
+            textContent: "تعذر تحميل مكتبة الرسوم البيانية (Chart.js) — تأكد من اتصال الإنترنت وجرب تحدّث الصفحة.",
+          }));
+        });
+        return;
+      }
+      destroyCharts();
+      const colors = chartColors();
+      Chart.defaults.color = colors.text;
+      Chart.defaults.font.family = "Cairo, sans-serif";
+
+      // Timeline
+      const timelineCanvas = document.getElementById("chartTimeline");
+      if (COL.timestamp > -1) {
+        const byDay = {};
+        allRows.forEach(r => {
+          const d = parseRowDate(r);
+          if (!d) return;
+          const key = d.toISOString().slice(0, 10);
+          byDay[key] = (byDay[key] || 0) + 1;
+        });
+        const days = Object.keys(byDay).sort();
+        charts.timeline = new Chart(timelineCanvas, {
+          type: "line",
+          data: { labels: days, datasets: [{ label: "تسجيلات", data: days.map(d => byDay[d]), borderColor: colors.palette[0], backgroundColor: "rgba(60,180,74,.15)", fill: true, tension: .35 }] },
+          options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { grid: { color: colors.grid } }, y: { grid: { color: colors.grid }, beginAtZero: true, ticks: { precision: 0 } } } }
+        });
+      } else {
+        timelineCanvas.replaceWith(Object.assign(document.createElement("div"), { className: "chart-empty", textContent: "مفيش عمود تاريخ/وقت في البيانات لعرض هذا الرسم." }));
+      }
+
+      // Gender pie
+      if (COL.gender > -1) {
+        const male = allRows.filter(r => r[COL.gender] === "Male").length;
+        const female = allRows.filter(r => r[COL.gender] === "Female").length;
+        charts.gender = new Chart(document.getElementById("chartGender"), {
+          type: "doughnut",
+          data: { labels: ["ذكر", "أنثى"], datasets: [{ data: [male, female], backgroundColor: [colors.palette[2], colors.palette[1]] }] },
+          options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+        });
+      }
+
+      // Job pie
+      if (COL.hasJob > -1) {
+        const yes = allRows.filter(r => r[COL.hasJob] === "Yes").length;
+        const no = allRows.filter(r => r[COL.hasJob] === "No").length;
+        charts.job = new Chart(document.getElementById("chartJob"), {
+          type: "doughnut",
+          data: { labels: ["بيشتغل", "مش بيشتغل"], datasets: [{ data: [yes, no], backgroundColor: [colors.palette[0], colors.palette[3]] }] },
+          options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+        });
+      }
+
+      // Graduate pie
+      if (COL.graduate > -1) {
+        const yes = allRows.filter(r => r[COL.graduate] === "Yes").length;
+        const no = allRows.filter(r => r[COL.graduate] === "No").length;
+        charts.graduate = new Chart(document.getElementById("chartGraduate"), {
+          type: "doughnut",
+          data: { labels: ["خريج", "طالب"], datasets: [{ data: [yes, no], backgroundColor: [colors.palette[4], colors.palette[5]] }] },
+          options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+        });
+      }
+
+      // Faculty bar
+      if (COL.faculty > -1) {
+        const counter = {};
+        allRows.forEach(r => { const v = r[COL.faculty]; if (v) counter[v] = (counter[v] || 0) + 1; });
+        const top = topN(counter, 8);
+        charts.faculty = new Chart(document.getElementById("chartFaculty"), {
+          type: "bar",
+          data: { labels: top.map(t => t[0]), datasets: [{ label: "عدد", data: top.map(t => t[1]), backgroundColor: colors.palette[0] }] },
+          options: { indexAxis: "y", responsive: true, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: colors.grid } }, y: { grid: { display: false } } } }
+        });
+      }
+
+      // Role bar
+      if (COL.role > -1) {
+        const counter = {};
+        allRows.forEach(r => { const v = r[COL.role]; if (v) counter[v] = (counter[v] || 0) + 1; });
+        const top = topN(counter, 8);
+        charts.role = new Chart(document.getElementById("chartRole"), {
+          type: "bar",
+          data: { labels: top.map(t => t[0]), datasets: [{ label: "عدد", data: top.map(t => t[1]), backgroundColor: colors.palette[1] }] },
+          options: { indexAxis: "y", responsive: true, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: colors.grid } }, y: { grid: { display: false } } } }
+        });
+      }
+    }
+
+    // ==================== Export & Print ====================
+    document.getElementById("exportBtn").addEventListener("click", () => {
+      const rows = getFilteredRows();
+      const csvLines = [allHeaders.join(",")];
+      rows.forEach(row => {
+        csvLines.push(row.map(cell => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","));
+      });
+      const csvContent = "\uFEFF" + csvLines.join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `dys-registrations-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      toast("اتنزل ملف الـ CSV ✓");
+    });
+
+    document.getElementById("printBtn").addEventListener("click", () => window.print());
+
+    // Quick action: copy the WhatsApp/phone numbers of whatever's currently
+    // filtered/visible in the table — one per line, ready to paste into a
+    // WhatsApp broadcast list. Reuses getFilteredRows() as-is, so it always
+    // matches exactly what's on screen; adds nothing to the data model.
+    document.getElementById("copyPhonesBtn").addEventListener("click", () => {
+      const col = COL.whatsapp > -1 ? COL.whatsapp : COL.phone;
+      if (col === undefined || col < 0) {
+        toast("مفيش عمود أرقام موبايل متعرّف عليه في الشيت");
+        return;
+      }
+      const rows = getFilteredRows();
+      const numbers = Array.from(new Set(
+        rows.map(r => String(r[col] ?? "").trim()).filter(Boolean)
+      ));
+      if (!numbers.length) {
+        toast("مفيش أرقام في الصفوف الظاهرة دلوقتي");
+        return;
+      }
+      navigator.clipboard.writeText(numbers.join("\n"))
+        .then(() => toast(`اتنسخ ${numbers.length} رقم ✓`))
+        .catch(() => toast("تعذر النسخ — المتصفح رفض إذن الكليپبورد"));
+    });
+
+    // Same idea, but for emails — comma-separated since that's what you'd
+    // paste into an email client's CC/BCC field.
+    document.getElementById("copyEmailsBtn").addEventListener("click", () => {
+      if (COL.email < 0) {
+        toast("مفيش عمود إيميل متعرّف عليه في الشيت");
+        return;
+      }
+      const rows = getFilteredRows();
+      const emails = Array.from(new Set(
+        rows.map(r => String(r[COL.email] ?? "").trim()).filter(Boolean)
+      ));
+      if (!emails.length) {
+        toast("مفيش إيميلات في الصفوف الظاهرة دلوقتي");
+        return;
+      }
+      navigator.clipboard.writeText(emails.join(", "))
+        .then(() => toast(`اتنسخ ${emails.length} إيميل ✓`))
+        .catch(() => toast("تعذر النسخ — المتصفح رفض إذن الكليپبورد"));
+    });
+
+    document.getElementById("loadActivityLogBtn").addEventListener("click", () => {
+      const btn = document.getElementById("loadActivityLogBtn");
+      btn.disabled = true;
+      setNote("activityLogNote", "جاري التحميل...");
+      postAdmin({ action: "getActivityLog" })
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          const table = document.getElementById("activityLogTable");
+          const body = document.getElementById("activityLogBody");
+          if (!res.entries.length) {
+            table.style.display = "none";
+            setNote("activityLogNote", "لسه مفيش حركات مسجّلة.");
+            return;
+          }
+          body.innerHTML = res.entries.map(e => {
+            const d = new Date(e.timestamp);
+            const when = isNaN(d) ? e.timestamp : d.toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" });
+            return `<tr><td>${when}</td><td>${escapeHtmlDash_(e.account)}</td><td>${escapeHtmlDash_(e.action)}</td></tr>`;
+          }).join("");
+          table.style.display = "";
+          setNote("activityLogNote", `آخر ${res.entries.length} حركة`, "ok");
+        })
+        .catch(err => setNote("activityLogNote", "حصل خطأ: " + err.message, "err"))
+        .finally(() => { btn.disabled = false; });
+    });
+    function escapeHtmlDash_(s) {
+      const d = document.createElement("div");
+      d.textContent = String(s ?? "");
+      return d.innerHTML;
+    }
+
+    document.getElementById("exportExcelBtn").addEventListener("click", () => {
+      const btn = document.getElementById("exportExcelBtn");
+      btn.disabled = true;
+      const originalText = btn.textContent;
+      btn.textContent = "جاري التصدير...";
+      postAdmin({ action: "exportExcel", sheetName: currentSheetName })
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          const byteChars = atob(res.fileBase64);
+          const bytes = new Uint8Array(byteChars.length);
+          for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
+          const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = res.fileName || "dys-export.xlsx";
+          link.click();
+          toast("اتنزل ملف Excel ✓");
+        })
+        .catch(err => toast("حصل خطأ: " + err.message))
+        .finally(() => { btn.disabled = false; btn.textContent = originalText; });
+    });
+
+    // ==================== AI chat assistant ====================
+    const AI_QUICK_QUESTIONS_DASH = [
+      "كام واحد سجل لحد دلوقتي؟",
+      "إزاي أضيف فورم جديد؟",
+      "إزاي أرفع شعار للفورم؟",
+      "إزاي أوافق على حساب جوجل جديد؟",
+    ];
+    let aiChatHistory = [];
+    let aiChatOpened = false;
+
+    function aiAppendMessage_(role, text, isTyping) {
+      const box = document.getElementById("aiChatMessages");
+      const div = document.createElement("div");
+      div.className = "ai-msg " + role + (isTyping ? " typing" : "");
+      div.textContent = text;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+      return div;
+    }
+
+    function aiRenderQuickQuestions_() {
+      const box = document.getElementById("aiChatQuick");
+      box.innerHTML = "";
+      AI_QUICK_QUESTIONS_DASH.forEach(q => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = q;
+        btn.addEventListener("click", () => aiSendMessage_(q));
+        box.appendChild(btn);
+      });
+    }
+
+    function aiSendMessage_(text) {
+      text = (text || document.getElementById("aiChatInput").value).trim();
+      if (!text || !currentPassword) return;
+      document.getElementById("aiChatInput").value = "";
+      aiAppendMessage_("user", text);
+      const sendBtn = document.getElementById("aiChatSend");
+      sendBtn.disabled = true;
+      const typingEl = aiAppendMessage_("bot", "بيكتب...", true);
+
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "chatAI", context: "dashboard", formId: currentFormId, password: currentPassword, message: text, history: aiChatHistory }),
+      })
+        .then(r => r.json())
+        .then(res => {
+          typingEl.remove();
+          if (res.status === "success") {
+            aiAppendMessage_("bot", res.reply);
+            aiChatHistory.push({ role: "user", text });
+            aiChatHistory.push({ role: "bot", text: res.reply });
+          } else {
+            aiAppendMessage_("bot", res.message || "حصل خطأ، جرب تاني.");
+          }
+        })
+        .catch(() => {
+          typingEl.remove();
+          aiAppendMessage_("bot", "تعذر الاتصال — جرب تاني.");
+        })
+        .finally(() => { sendBtn.disabled = false; });
+    }
+
+    document.getElementById("aiChatBubble").addEventListener("click", () => {
+      const panel = document.getElementById("aiChatPanel");
+      panel.classList.toggle("open");
+      if (panel.classList.contains("open") && !aiChatOpened) {
+        aiChatOpened = true;
+        aiRenderQuickQuestions_();
+        aiAppendMessage_("bot", "أهلًا! أنا مساعد الداشبورد 👋 اسألني عن إحصائيات الفورم اللي فاتح دلوقتي، أو إزاي تستخدم أي جزء من اللوحة.");
+      }
+    });
+    document.getElementById("aiChatClose").addEventListener("click", () => {
+      document.getElementById("aiChatPanel").classList.remove("open");
+    });
+    document.getElementById("aiChatSend").addEventListener("click", () => aiSendMessage_());
+    document.getElementById("aiChatInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") aiSendMessage_();
+    });
+
+    // ==================== Init render ====================
+    function renderAll() { renderStats(); renderTable(); if (document.getElementById("chartsPanel").classList.contains("active")) renderCharts(); }
+  </script>
+</body>
+
+</html>

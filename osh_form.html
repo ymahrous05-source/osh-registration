@@ -1,0 +1,3252 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>استمارة تسجيل البيانات - أسرة صناع الحياة بالجامعات المصرية</title>
+  <meta name="description" content="استمارة تسجيل بيانات أسرة صناع الحياة بالجامعات المصرية">
+  <meta name="theme-color" content="#08283f">
+  <!-- PWA: manifest.webmanifest, icon.svg and sw.js must sit next to this HTML file
+       on whatever host serves it — see the note at the end of this file for details. -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Loaded as a non-blocking preload instead of a plain <link rel="stylesheet">:
+       on a slow connection, a regular stylesheet link makes the browser wait
+       for the whole font CSS file before it paints ANYTHING, which is exactly
+       what made the page look blank until fully scrolled/loaded on weak
+       mobile data. This way the page paints immediately with a fallback
+       font, then swaps to Cairo/JetBrains Mono once it's actually ready. -->
+  <link rel="preload" as="style"
+    href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap"
+    onload="this.onload=null;this.rel='stylesheet'">
+  <noscript>
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap">
+  </noscript>
+  <style>
+    :root {
+      --dys-bg-1: #08283f;
+      --dys-bg-2: #0e3c5c;
+      --dys-bg-3: #061c2c;
+      --dys-green: #1668a0;
+      --dys-green-dark: #0a4b73;
+      --dys-green-light: #8fc7e8;
+      --dys-navy: #0a4b73;
+      --dys-gold: #f5ab1e;
+      --dys-gold-dark: #c98a0b;
+      --dys-gold-light: #ffd166;
+      --dys-white: #ffffff;
+      --dys-text: #0d2438;
+      --dys-text-muted: #5b7186;
+      --dys-error: #c0392b;
+      --dys-error-bg: #fdecea;
+      --card-radius: 24px;
+      --mono: 'JetBrains Mono', monospace;
+      --ease: cubic-bezier(.22, 1, .36, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      /* Defensive: never allow horizontal scrolling regardless of what any
+         element does layout-wise — this page should only ever scroll
+         vertically. */
+      overflow-x: hidden;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Cairo', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 28px 16px 56px;
+      background:
+        radial-gradient(1200px 600px at 15% -10%, rgba(245, 171, 30, .10), transparent 60%),
+        radial-gradient(900px 500px at 110% 10%, rgba(60, 180, 74, .18), transparent 55%),
+        linear-gradient(165deg, var(--dys-bg-2) 0%, var(--dys-bg-1) 55%, var(--dys-bg-3) 100%),
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, .035) 0px, rgba(255, 255, 255, .035) 1px, transparent 1px, transparent 64px),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, .035) 0px, rgba(255, 255, 255, .035) 1px, transparent 1px, transparent 64px);
+      color: var(--dys-text);
+      transition: background .3s ease;
+    }
+
+    body[dir="ltr"] {
+      font-family: 'Cairo', 'Segoe UI', sans-serif;
+    }
+
+    ::selection {
+      background: rgba(60, 180, 74, .3);
+    }
+
+    a {
+      color: inherit;
+    }
+
+    /* Focus visibility (accessibility) */
+    :focus-visible {
+      outline: 3px solid var(--dys-gold);
+      outline-offset: 2px;
+      border-radius: 6px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: .001ms !important;
+        transition-duration: .001ms !important;
+      }
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: 580px;
+    }
+
+    /* ---------- Top bar (lang toggle + trust note) ---------- */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: rgba(255, 255, 255, .82);
+      font-size: 12.5px;
+      margin-bottom: 10px;
+      padding: 0 4px;
+    }
+
+    .trust-note {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .trust-note svg {
+      width: 14px;
+      height: 14px;
+      flex: none;
+      opacity: .85;
+    }
+
+    .lang-toggle {
+      display: inline-flex;
+      background: rgba(255, 255, 255, .10);
+      border: 1px solid rgba(255, 255, 255, .18);
+      border-radius: 999px;
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .lang-toggle button {
+      border: none;
+      background: transparent;
+      color: rgba(255, 255, 255, .75);
+      font-family: 'Cairo', sans-serif;
+      font-weight: 700;
+      font-size: 11.5px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background .2s ease, color .2s ease;
+    }
+
+    .lang-toggle button.active {
+      background: var(--dys-gold);
+      color: #4a3200;
+    }
+
+    /* ---------- Badge / logo ---------- */
+    .badge-holder {
+      display: flex;
+      justify-content: center;
+      margin-bottom: -58px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .badge-svg,
+    .badge-img {
+      border-radius: 50%;
+      box-shadow: 0 6px 22px rgba(0, 0, 0, .45), 0 0 0 6px var(--dys-bg-1), 0 0 0 9px rgba(245, 171, 30, .35);
+      background: #fff;
+      animation: badgeIn .6s var(--ease) both;
+    }
+
+    .badge-img {
+      width: 112px;
+      height: 112px;
+      object-fit: contain;
+      padding: 14px;
+      box-sizing: border-box;
+      display: block;
+    }
+
+    @keyframes badgeIn {
+      from {
+        transform: translateY(-10px) scale(.9);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* ---------- Card ---------- */
+    .card {
+      background: var(--dys-white);
+      border-radius: var(--card-radius);
+      padding: 80px 32px 32px;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, .38), 0 2px 0 rgba(255, 255, 255, .5) inset;
+      position: relative;
+      animation: cardIn .5s .1s var(--ease) both;
+    }
+
+    @keyframes cardIn {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .title {
+      text-align: center;
+      font-weight: 800;
+      font-size: 22px;
+      color: var(--dys-text);
+      margin: 0 0 4px;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: .08em;
+      color: var(--dys-text-muted);
+      margin: 0 0 22px;
+      text-transform: uppercase;
+    }
+
+    /* ---------- Star progress ---------- */
+    .stars {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 26px;
+    }
+
+    .stars svg {
+      width: 22px;
+      height: 22px;
+      transition: transform .3s var(--ease);
+    }
+
+    .stars .star-path {
+      fill: #e4e4e4;
+      stroke: #d3d3d3;
+      stroke-width: 1;
+      transition: fill .3s ease, stroke .3s ease;
+    }
+
+    .stars .star.active .star-path {
+      fill: var(--dys-gold);
+      stroke: var(--dys-gold-dark);
+    }
+
+    .stars .star.active {
+      animation: starPop .4s var(--ease);
+    }
+
+    .stars .star.current {
+      transform: scale(1.3);
+      filter: drop-shadow(0 2px 6px rgba(245, 171, 30, .5));
+    }
+
+    @keyframes starPop {
+      0% {
+        transform: scale(1);
+      }
+
+      45% {
+        transform: scale(1.45) rotate(-8deg);
+      }
+
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 7px;
+      border-radius: 6px;
+      background: #eef1ef;
+      overflow: hidden;
+      margin-top: 14px;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 6px;
+      background: linear-gradient(90deg, var(--dys-green), var(--dys-gold));
+      transition: width .4s var(--ease);
+      position: relative;
+    }
+
+    .progress-fill::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .55), transparent);
+      width: 40px;
+      animation: shimmer 1.8s linear infinite;
+    }
+
+    @keyframes shimmer {
+      from {
+        transform: translateX(-40px);
+      }
+
+      to {
+        transform: translateX(140px);
+      }
+    }
+
+    .progress-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 6px;
+    }
+
+    .progress-pct {
+      font-size: 11px;
+      color: var(--dys-text-muted);
+      margin: 0;
+    }
+
+    .autosave-note {
+      font-size: 10.5px;
+      color: var(--dys-text-muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity .3s ease;
+    }
+
+    .autosave-note.show {
+      opacity: 1;
+    }
+
+    .autosave-note svg {
+      width: 11px;
+      height: 11px;
+    }
+
+    /* ---------- Draft banner ---------- */
+    .draft-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: linear-gradient(135deg, #fff8e6, #fff2d1);
+      border: 1px solid #f0d68a;
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-top: 14px;
+      font-size: 12.5px;
+      color: #7a5b00;
+    }
+
+    .draft-banner.show {
+      display: flex;
+      flex-wrap: wrap;
+      animation: cardIn .35s var(--ease) both;
+    }
+
+    .draft-banner button {
+      border: none;
+      border-radius: 9px;
+      padding: 7px 14px;
+      font-family: 'Cairo', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    #restoreDraftBtn {
+      background: var(--dys-green);
+      color: #fff;
+    }
+
+    #dismissDraftBtn {
+      background: #eee;
+      color: #555;
+    }
+
+    .step-label {
+      text-align: center;
+      font-weight: 800;
+      font-size: 15px;
+      color: var(--dys-navy);
+      margin-bottom: 20px;
+      letter-spacing: -.2px;
+    }
+
+    /* ---------- Steps ---------- */
+    .step {
+      display: none;
+    }
+
+    .step.visible {
+      display: block;
+      animation: stepIn .38s var(--ease);
+    }
+
+    @keyframes stepIn {
+      from {
+        opacity: 0;
+        transform: translateX(14px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    body[dir="ltr"] .step.visible {
+      animation-name: stepInLtr;
+    }
+
+    @keyframes stepInLtr {
+      from {
+        opacity: 0;
+        transform: translateX(-14px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .field {
+      margin-bottom: 18px;
+    }
+
+    .field label {
+      display: block;
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 7px;
+      color: var(--dys-text);
+    }
+
+    .field .hint {
+      font-size: 12px;
+      color: var(--dys-text-muted);
+      font-weight: 400;
+      margin-inline-start: 6px;
+    }
+
+    .input-shell {
+      position: relative;
+    }
+
+    .field input[type=text],
+    .field input[type=email],
+    .field input[type=tel],
+    .field textarea {
+      width: 100%;
+      font-family: 'Cairo', sans-serif;
+      font-size: 16px;
+      padding: 12px 40px 12px 14px;
+      border-radius: 13px;
+      border: 1.5px solid #e2e6e3;
+      background: #fafbfa;
+      color: var(--dys-text);
+      outline: none;
+      transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
+    }
+
+    body[dir="rtl"] .field input[type=text],
+    body[dir="rtl"] .field input[type=email],
+    body[dir="rtl"] .field input[type=tel] {
+      padding: 12px 14px 12px 40px;
+    }
+
+    .field textarea {
+      resize: vertical;
+      min-height: 80px;
+      padding-inline-end: 14px;
+    }
+
+    .field input:focus,
+    .field textarea:focus {
+      border-color: var(--dys-green);
+      background: #fff;
+      box-shadow: 0 0 0 4px rgba(60, 180, 74, .12);
+    }
+
+    .field.invalid input,
+    .field.invalid textarea {
+      border-color: var(--dys-error);
+      box-shadow: 0 0 0 4px rgba(192, 57, 43, .08);
+    }
+
+    .field.valid input,
+    .field.valid textarea {
+      border-color: var(--dys-green);
+    }
+
+    .field-status-icon {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      inset-inline-end: 12px;
+      width: 18px;
+      height: 18px;
+      opacity: 0;
+      transition: opacity .2s ease, transform .2s ease;
+    }
+
+    .field.valid .field-status-icon.ok {
+      opacity: 1;
+    }
+
+    .field.invalid .field-status-icon.bad {
+      opacity: 1;
+    }
+
+    .error-msg {
+      display: none;
+      color: var(--dys-error);
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 6px;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .field.invalid .error-msg {
+      display: flex;
+      animation: shake .35s var(--ease);
+    }
+
+    @keyframes shake {
+
+      10%,
+      90% {
+        transform: translateX(-1px);
+      }
+
+      20%,
+      80% {
+        transform: translateX(2px);
+      }
+
+      30%,
+      50%,
+      70% {
+        transform: translateX(-4px);
+      }
+
+      40%,
+      60% {
+        transform: translateX(4px);
+      }
+    }
+
+    .choice-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .choice-pill {
+      flex: 1;
+      min-width: 110px;
+      text-align: center;
+      padding: 12px 14px;
+      border-radius: 13px;
+      border: 1.5px solid #e2e6e3;
+      background: #fafbfa;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      user-select: none;
+      transition: all .18s var(--ease);
+      position: relative;
+    }
+
+    .choice-pill input {
+      display: none;
+    }
+
+    .choice-pill:hover {
+      border-color: #c9d4cd;
+    }
+
+    .choice-pill.selected {
+      border-color: var(--dys-green);
+      background: rgba(60, 180, 74, .10);
+      color: var(--dys-green-dark);
+      box-shadow: 0 0 0 3px rgba(60, 180, 74, .10);
+    }
+
+    .conditional {
+      display: none;
+    }
+
+    .conditional.show {
+      display: block;
+      animation: stepIn .3s var(--ease);
+    }
+
+    .nid-info {
+      margin-top: 8px;
+      padding: 11px 13px;
+      border-radius: 11px;
+      background: rgba(60, 180, 74, .08);
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--dys-green-dark);
+      display: none;
+      line-height: 1.7;
+    }
+
+    .nid-info.show {
+      display: block;
+      animation: stepIn .3s var(--ease);
+    }
+
+    .nid-info.warn {
+      background: var(--dys-error-bg);
+      color: var(--dys-error);
+    }
+
+    .nid-info .nid-apply-btn {
+      margin-inline-start: 6px;
+      border: none;
+      background: var(--dys-green-dark);
+      color: #fff;
+      font-family: 'Cairo', sans-serif;
+      font-weight: 700;
+      font-size: 11.5px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    /* ---------- Nav ---------- */
+    .nav-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 14px 18px;
+      border-radius: 14px;
+      border: none;
+      font-family: 'Cairo', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: transform .15s var(--ease), opacity .15s ease, background .2s ease, box-shadow .2s ease;
+    }
+
+    .btn:active {
+      transform: scale(.97);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--dys-green), var(--dys-green-dark));
+      color: #fff;
+      box-shadow: 0 8px 20px rgba(60, 180, 74, .35);
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.06);
+    }
+
+    .btn-secondary {
+      background: #eef1ef;
+      color: var(--dys-text);
+      flex: 0 0 110px;
+    }
+
+    .btn:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ---------- Review screen ---------- */
+    .review-wrap {
+      animation: stepIn .35s var(--ease);
+    }
+
+    .review-group {
+      border: 1.5px solid #eef1ef;
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+
+    .review-group-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .review-group-head h4 {
+      margin: 0;
+      font-size: 13px;
+      color: var(--dys-navy);
+      font-weight: 800;
+    }
+
+    .review-edit-btn {
+      border: none;
+      background: none;
+      color: var(--dys-green-dark);
+      font-family: 'Cairo', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .review-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 13.5px;
+      padding: 5px 0;
+      border-bottom: 1px dashed #f1f3f1;
+    }
+
+    .review-row:last-child {
+      border-bottom: none;
+    }
+
+    .review-row .k {
+      color: var(--dys-text-muted);
+      flex: 0 0 40%;
+    }
+
+    .review-row .v {
+      font-weight: 700;
+      text-align: end;
+      word-break: break-word;
+    }
+
+    .review-row .v.empty {
+      color: #c9c9c9;
+      font-weight: 500;
+    }
+
+    .confirm-checkbox {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      font-size: 12.5px;
+      color: var(--dys-text-muted);
+      margin: 14px 0 4px;
+      line-height: 1.6;
+    }
+
+    .confirm-checkbox input {
+      margin-top: 3px;
+    }
+
+    /* ---------- Success ---------- */
+    .success {
+      display: none;
+      text-align: center;
+      padding: 12px 4px 4px;
+    }
+
+    .success.visible {
+      display: block;
+    }
+
+    .success .check {
+      width: 76px;
+      height: 76px;
+      margin: 0 auto 18px;
+      border-radius: 50%;
+      background: rgba(60, 180, 74, .12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: popIn .5s var(--ease) both;
+      position: relative;
+    }
+
+    .success .check svg {
+      stroke-dasharray: 40;
+      stroke-dashoffset: 40;
+      animation: drawCheck .5s .3s ease forwards;
+    }
+
+    @keyframes popIn {
+      from {
+        transform: scale(0);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes drawCheck {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    .success h2 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      color: var(--dys-text);
+    }
+
+    .success p {
+      margin: 0 0 18px;
+      color: var(--dys-text-muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .member-card {
+      background: linear-gradient(135deg, var(--dys-bg-2), var(--dys-bg-1));
+      color: #fff;
+      border-radius: 18px;
+      padding: 20px;
+      margin: 0 0 18px;
+      text-align: start;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .member-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(45deg, rgba(255, 255, 255, .035) 0 10px, transparent 10px 20px);
+    }
+
+    .member-card .mc-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      position: relative;
+    }
+
+    .member-card .mc-label {
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, .6);
+    }
+
+    .member-card .mc-no {
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      color: var(--dys-gold-light);
+      direction: ltr;
+      text-align: left;
+    }
+
+    .member-card .mc-name {
+      font-size: 16px;
+      font-weight: 800;
+      margin-top: 10px;
+      position: relative;
+    }
+
+    .member-card .mc-star {
+      width: 26px;
+      height: 26px;
+      flex: none;
+    }
+
+    .member-card .mc-star .star-path {
+      fill: var(--dys-gold);
+    }
+
+    .member-card .mc-bottom-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .member-card .mc-copy {
+      border: 1px dashed rgba(255, 255, 255, .35);
+      background: rgba(255, 255, 255, .08);
+      color: #fff;
+      font-family: 'Cairo', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 7px 12px;
+      border-radius: 9px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .member-card .mc-qr {
+      border-radius: 8px;
+      background: #fff;
+      padding: 4px;
+      flex: none;
+    }
+
+    .success-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* ---------- Registration window closed / not-started state ---------- */
+    .closed-dates {
+      background: rgba(60, 180, 74, .08);
+      border: 1px solid rgba(60, 180, 74, .25);
+      border-radius: 14px;
+      padding: 12px 16px;
+      margin: 4px 0 18px;
+      font-size: 13.5px;
+      color: var(--dys-text);
+    }
+
+    .closed-dates div {
+      padding: 3px 0;
+    }
+
+    .closed-dates b {
+      color: var(--dys-green-dark);
+    }
+
+    .closed-countdown {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 17px;
+      color: var(--dys-green-dark);
+      margin: 6px 0 16px;
+    }
+
+    .btn-whatsapp {
+      background: #25D366;
+      color: #fff;
+      text-decoration: none;
+      display: block;
+      padding: 13px 18px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 15px;
+      text-align: center;
+      transition: filter .2s ease;
+    }
+
+    .btn-whatsapp:hover {
+      filter: brightness(1.05);
+    }
+
+    /* Post-registration action buttons (server-configured from the dashboard's
+       "🎉 خيارات بعد التسجيل" card — see DYS_SUCCESS_ACTIONS/renderSuccessActionButtons_
+       below). .btn-whatsapp above stays the default/fallback look; these
+       just recolor per action type so the button hints at where it leads. */
+    .btn-whatsapp.sa-telegram {
+      background: #29A9EA;
+    }
+
+    .btn-whatsapp.sa-facebook {
+      background: #1877F2;
+    }
+
+    .btn-whatsapp.sa-instagram {
+      background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+    }
+
+    .btn-whatsapp.sa-link {
+      background: var(--dys-navy);
+    }
+
+    .btn-print {
+      background: #eef1ef;
+      color: var(--dys-text);
+      border: none;
+      padding: 13px 18px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      font-family: 'Cairo', sans-serif;
+    }
+
+    .email-note {
+      font-size: 12px;
+      color: var(--dys-text-muted);
+      margin-top: 10px;
+    }
+
+    .submit-error {
+      display: none;
+      background: var(--dys-error-bg);
+      color: var(--dys-error);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      text-align: center;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .submit-error.visible {
+      display: flex;
+      animation: shake .4s var(--ease);
+    }
+
+    .submit-error button {
+      border: none;
+      background: var(--dys-error);
+      color: #fff;
+      font-family: 'Cairo', sans-serif;
+      font-weight: 700;
+      font-size: 11.5px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    footer {
+      text-align: center;
+      color: rgba(255, 255, 255, .55);
+      font-size: 12px;
+      margin-top: 22px;
+    }
+
+    @media (max-width:420px) {
+      .card {
+        padding: 76px 20px 24px;
+      }
+
+      .choice-pill {
+        min-width: 90px;
+      }
+    }
+
+    .hp-field {
+      /* Standard "visually hidden" pattern — 1x1px, clipped, no negative
+         offset. The old version used `left: -9999px`, but `left`/`right` are
+         PHYSICAL properties (not RTL-aware) — on this RTL page that dragged
+         the document's scrollable width out to ~10,000px, so mobile browsers
+         opened on a blank stretch of empty page and needed a long swipe to
+         reach the real, visible form. This version never leaves the
+         viewport's flow at all, so it can't do that. */
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      margin: -1px !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      clip: rect(0, 0, 0, 0) !important;
+      white-space: nowrap !important;
+      border: 0 !important;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Confetti canvas */
+    #confettiCanvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* Print receipt */
+    .print-only {
+      display: none;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+
+      .print-only,
+      .print-only * {
+        visibility: visible;
+      }
+
+      .print-only {
+        display: block;
+        position: absolute;
+        inset: 0;
+        padding: 30px;
+      }
+    }
+
+    /* ---------- AI chat assistant (helps members while they register) ---------- */
+    .ai-chat-bubble {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--dys-green), var(--dys-green-dark));
+      color: #fff;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .3);
+      cursor: pointer;
+      z-index: 998;
+      border: none;
+      transition: transform .2s ease;
+    }
+
+    .ai-chat-bubble.visible {
+      display: flex;
+    }
+
+    .ai-chat-bubble:active {
+      transform: scale(.92);
+    }
+
+    .ai-chat-panel {
+      position: fixed;
+      bottom: 90px;
+      left: 20px;
+      width: min(360px, calc(100vw - 32px));
+      max-height: min(520px, calc(100vh - 130px));
+      background: #fff;
+      border-radius: var(--card-radius);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, .35);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      z-index: 999;
+      direction: rtl;
+      border: 1px solid rgba(60, 180, 74, .25);
+    }
+
+    .ai-chat-panel.open {
+      display: flex;
+      animation: aiPanelIn .2s ease both;
+    }
+
+    @keyframes aiPanelIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .ai-chat-header {
+      background: linear-gradient(135deg, var(--dys-navy), #1a1a4a);
+      color: #fff;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .ai-chat-header button {
+      background: none;
+      border: none;
+      color: #fff;
+      opacity: .8;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 2px 6px;
+    }
+
+    .ai-chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 13px;
+      background: #f6f9f6;
+      min-height: 120px;
+    }
+
+    .ai-msg {
+      max-width: 85%;
+      padding: 9px 12px;
+      border-radius: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .ai-msg.bot {
+      background: #fff;
+      border: 1px solid #e2e6e3;
+      color: #0d2438;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+
+    .ai-msg.user {
+      background: var(--dys-green);
+      color: #fff;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+
+    .ai-msg.typing {
+      color: #5b7186;
+      font-style: italic;
+    }
+
+    .ai-chat-quick {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 10px 14px 0;
+      background: #f6f9f6;
+    }
+
+    .ai-chat-quick button {
+      background: #fff;
+      border: 1px solid rgba(60, 180, 74, .35);
+      color: #0d2438;
+      font-size: 11.5px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-family: 'Cairo', sans-serif;
+    }
+
+    .ai-chat-input-row {
+      display: flex;
+      gap: 8px;
+      padding: 10px 12px;
+      background: #f6f9f6;
+      border-top: 1px solid #e2e6e3;
+    }
+
+    .ai-chat-input-row input {
+      flex: 1;
+      border: 1px solid #d5ddd6;
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 13px;
+      font-family: 'Cairo', sans-serif;
+      min-width: 0;
+    }
+
+    .ai-chat-input-row button {
+      background: var(--dys-green);
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      padding: 0 16px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Cairo', sans-serif;
+    }
+
+    .ai-chat-input-row button:disabled {
+      opacity: .6;
+      cursor: default;
+    }
+
+    @media (max-width: 400px) {
+      .ai-chat-bubble {
+        bottom: 14px;
+        left: 14px;
+        width: 52px;
+        height: 52px;
+        font-size: 22px;
+      }
+
+      .ai-chat-panel {
+        bottom: 78px;
+        left: 12px;
+      }
+    }
+  </style>
+</head>
+
+
+<body dir="rtl">
+
+  <canvas id="confettiCanvas"></canvas>
+
+  <!-- AI chat assistant — helps registrants with questions about THIS form
+       only (deadline, required fields, contact channels). Never sees any
+       registrant's actual submitted data — see buildFormAiPrompt_ in Code.gs. -->
+  <button type="button" class="ai-chat-bubble" id="aiChatBubble" aria-label="مساعد التسجيل">💬</button>
+  <div class="ai-chat-panel" id="aiChatPanel">
+    <div class="ai-chat-header">
+      <span>🤖 مساعد التسجيل</span>
+      <button type="button" id="aiChatClose" aria-label="قفل">✕</button>
+    </div>
+    <div class="ai-chat-messages" id="aiChatMessages"></div>
+    <div class="ai-chat-quick" id="aiChatQuick"></div>
+    <div class="ai-chat-input-row">
+      <input type="text" id="aiChatInput" placeholder="اسأل عن التسجيل...">
+      <button type="button" id="aiChatSend">إرسال</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="topbar">
+      <div class="trust-note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2l7 3v6c0 5-3.4 8.4-7 11-3.6-2.6-7-6-7-11V5l7-3z" />
+        </svg>
+        <span data-i18n="trustNote">بياناتك بتتبعت مباشرة للجنة ومحدش تاني بيشوفها</span>
+      </div>
+      <div class="lang-toggle" role="group" aria-label="Language">
+        <button type="button" id="langAr" class="active" data-lang="ar">AR</button>
+        <button type="button" id="langEn" data-lang="en">EN</button>
+      </div>
+    </div>
+
+    <div class="badge-holder">
+      <img class="badge-img" id="customLogoImg" alt="شعار أسرة صناع الحياة" src="data:image/png;base64,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">
+      <svg class="badge-svg" id="defaultBadgeSvg" viewBox="0 0 120 120" width="112" height="112" role="img"
+        aria-label="شعار أسرة صناع الحياة" style="display:none;">
+      </svg>
+    </div>
+
+    <div class="card">
+
+      <div id="formArea">
+        <h1 class="title" id="formTitleEl" data-i18n="pageTitle">استمارة تسجيل البيانات</h1>
+        <p class="subtitle">Osar Sonaa Al-Hayah &middot; أسرة صناع الحياة بالجامعات المصرية</p>
+
+        <div class="stars" id="starsRow">
+          <div class="star" data-step="1"><svg viewBox="0 0 24 24">
+              <path class="star-path"
+                d="M12 1.5l3.09 6.26 6.91 1-5 4.87 1.18 6.87L12 17.27l-6.18 3.23L7 13.63l-5-4.87 6.91-1z" />
+            </svg></div>
+          <div class="star" data-step="2"><svg viewBox="0 0 24 24">
+              <path class="star-path"
+                d="M12 1.5l3.09 6.26 6.91 1-5 4.87 1.18 6.87L12 17.27l-6.18 3.23L7 13.63l-5-4.87 6.91-1z" />
+            </svg></div>
+          <div class="star" data-step="3"><svg viewBox="0 0 24 24">
+              <path class="star-path"
+                d="M12 1.5l3.09 6.26 6.91 1-5 4.87 1.18 6.87L12 17.27l-6.18 3.23L7 13.63l-5-4.87 6.91-1z" />
+            </svg></div>
+          <div class="star" data-step="4"><svg viewBox="0 0 24 24">
+              <path class="star-path"
+                d="M12 1.5l3.09 6.26 6.91 1-5 4.87 1.18 6.87L12 17.27l-6.18 3.23L7 13.63l-5-4.87 6.91-1z" />
+            </svg></div>
+          <div class="star" data-step="5" id="star5" style="display:none;"><svg viewBox="0 0 24 24">
+              <path class="star-path"
+                d="M12 1.5l3.09 6.26 6.91 1-5 4.87 1.18 6.87L12 17.27l-6.18 3.23L7 13.63l-5-4.87 6.91-1z" />
+            </svg></div>
+        </div>
+        <p class="step-label" id="stepLabel" aria-live="polite"></p>
+
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-row">
+          <p class="progress-pct" id="progressPct">0% <span data-i18n="pctComplete">مكتمل</span></p>
+          <p class="autosave-note" id="autosaveNote">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+              <path d="M5 13l4 4L19 7" />
+            </svg>
+            <span id="autosaveText" data-i18n="autosaved">محفوظ تلقائيًا</span>
+          </p>
+        </div>
+
+        <div class="draft-banner" id="draftBanner">
+          <span data-i18n="draftFound">لقينا مسودة سابقة محفوظة على جهازك.</span>
+          <button type="button" id="restoreDraftBtn" data-i18n="restoreDraft">استرجاعها</button>
+          <button type="button" id="dismissDraftBtn" data-i18n="dismissDraft">تجاهل</button>
+        </div>
+
+        <div class="submit-error" id="submitError"></div>
+
+        <form id="dysForm" novalidate>
+
+          <div class="hp-field" aria-hidden="true">
+            <label for="website">اتركه فارغًا</label>
+            <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+          </div>
+
+          <!-- Step 1: Personal -->
+          <div class="step visible" data-step="1">
+            <div class="field" data-key="name">
+              <label data-i18n="lblName">الاسم بالكامل</label>
+              <div class="input-shell">
+                <input type="text" name="name" autocomplete="name">
+                <svg class="field-status-icon ok" viewBox="0 0 24 24" fill="none" stroke="#1668a0" stroke-width="2.5">
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+                <svg class="field-status-icon bad" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2.5">
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </div>
+              <div class="error-msg" data-i18n="errName">من فضلك أدخل الاسم بالكامل</div>
+            </div>
+            <div class="field" data-key="age">
+              <label data-i18n="lblAge">العمر</label>
+              <div class="input-shell">
+                <input type="text" inputmode="numeric" name="age">
+                <svg class="field-status-icon ok" viewBox="0 0 24 24" fill="none" stroke="#1668a0" stroke-width="2.5">
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+                <svg class="field-status-icon bad" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2.5">
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </div>
+              <div class="error-msg" data-i18n="errAge">أدخل رقم صحيح للعمر</div>
+            </div>
+            <div class="field" data-key="gender">
+              <label data-i18n="lblGender">النوع</label>
+              <div class="choice-group" data-choice="gender">
+                <label class="choice-pill"><input type="radio" name="gender" value="Male"><span
+                    data-i18n="male">ذكر</span></label>
+                <label class="choice-pill"><input type="radio" name="gender" value="Female"><span
+                    data-i18n="female">أنثى</span></label>
+              </div>
+              <div class="error-msg" data-i18n="errGender">من فضلك اختر النوع</div>
+            </div>
+            <div class="field" data-key="nationalId">
+              <label><span data-i18n="lblNid">الرقم القومي</span> <span class="hint" data-i18n="hint14">(14
+                  رقم)</span></label>
+              <div class="input-shell">
+                <input type="text" inputmode="numeric" maxlength="14" name="nationalId">
+                <svg class="field-status-icon ok" viewBox="0 0 24 24" fill="none" stroke="#1668a0" stroke-width="2.5">
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+                <svg class="field-status-icon bad" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2.5">
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </div>
+              <div class="error-msg" data-i18n="errNid">الرقم القومي غير صحيح، من فضلك راجعه</div>
+              <div class="nid-info" id="nidInfo"></div>
+            </div>
+          </div>
+
+          <!-- Step 2: Contact -->
+          <div class="step" data-step="2">
+            <div class="field" data-key="phone">
+              <label data-i18n="lblPhone">رقم الهاتف</label>
+              <div class="input-shell">
+                <input type="tel" inputmode="numeric" name="phone" placeholder="01xxxxxxxxx">
+                <svg class="field-status-icon ok" viewBox="0 0 24 24" fill="none" stroke="#1668a0" stroke-width="2.5">
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+                <svg class="field-status-icon bad" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2.5">
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </div>
+              <div class="error-msg" data-i18n="errPhone">أدخل رقم هاتف مصري صحيح (11 رقم)</div>
+            </div>
+            <div class="field" data-key="whatsapp">
+              <label data-i18n="lblWhatsapp">رقم الواتساب</label>
+              <div class="input-shell">
+                <input type="tel" inputmode="numeric" name="whatsapp" placeholder="01xxxxxxxxx">
+                <svg class="field-status-icon ok" viewBox="0 0 24 24" fill="none" stroke="#1668a0" stroke-width="2.5">
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+                <svg class="field-status-icon bad" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2.5">
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </div>
+              <div class="error-msg" data-i18n="errWhatsapp">أدخل رقم واتساب صحيح (11 رقم)</div>
+            </div>
+            <div class="field" data-key="email">
+              <label><span data-i18n="lblEmail">البريد الإلكتروني</span> <span class="hint"
+                  data-i18n="optional">(اختياري)</span></label>
+              <input type="email" name="email">
+              <div class="error-msg" data-i18n="errEmail">صيغة البريد الإلكتروني غير صحيحة</div>
+            </div>
+          </div>
+
+          <!-- Step 3: Academic -->
+          <div class="step" data-step="3">
+            <div class="field" data-key="faculty">
+              <label data-i18n="lblFaculty">الكلية / المدرسة</label>
+              <input type="text" name="faculty">
+              <div class="error-msg" data-i18n="errFaculty">من فضلك أدخل الكلية أو المدرسة</div>
+            </div>
+            <div class="field" data-key="graduate">
+              <label data-i18n="lblGraduate">هل أنت خريج؟</label>
+              <div class="choice-group" data-choice="graduate">
+                <label class="choice-pill"><input type="radio" name="graduate" value="Yes"><span
+                    data-i18n="yes">نعم</span></label>
+                <label class="choice-pill"><input type="radio" name="graduate" value="No"><span
+                    data-i18n="no">لا</span></label>
+              </div>
+              <div class="error-msg" data-i18n="errGraduate">من فضلك اختر إجابة</div>
+            </div>
+          </div>
+
+          <!-- Step 4: Committee & job -->
+          <div class="step" data-step="4">
+            <div class="field" data-key="committee">
+              <label data-i18n="lblCommittee">صفتك داخل الكيان</label>
+              <input type="text" name="committee">
+              <div class="error-msg" data-i18n="errCommittee">من فضلك أدخل صفتك داخل الكيان</div>
+            </div>
+            <div class="field" data-key="hasJob">
+              <label data-i18n="lblHasJob">هل تعمل حاليًا؟</label>
+              <div class="choice-group" data-choice="hasJob">
+                <label class="choice-pill"><input type="radio" name="hasJob" value="Yes"><span
+                    data-i18n="yes">نعم</span></label>
+                <label class="choice-pill"><input type="radio" name="hasJob" value="No"><span
+                    data-i18n="no">لا</span></label>
+              </div>
+              <div class="error-msg" data-i18n="errHasJob">من فضلك اختر إجابة</div>
+            </div>
+            <div class="field conditional" id="currentJobField" data-key="currentJob">
+              <label data-i18n="lblCurrentJob">طبيعة عملك الحالي</label>
+              <input type="text" name="currentJob">
+            </div>
+          </div>
+
+          <!-- Step 5: extra + custom fields — built entirely at runtime by
+               buildDynamicFieldsStep_() from what the dashboard's "🧩 حقول
+               الاستمارة" card has enabled. Stays empty (and step 5/star 5
+               stay hidden) if nothing is enabled there. -->
+          <div class="step" data-step="5" id="dynamicFieldsStep"></div>
+
+          <div class="nav-row">
+            <button type="button" class="btn btn-secondary" id="backBtn" style="visibility:hidden;"
+              data-i18n="btnBack">السابق</button>
+            <button type="button" class="btn btn-primary" id="nextBtn" data-i18n="btnNext">التالي</button>
+          </div>
+        </form>
+
+        <!-- Review screen (shown after last step, before actually submitting) -->
+        <div class="review-wrap" id="reviewArea" style="display:none;">
+          <p class="step-label" data-i18n="reviewTitle">راجع بياناتك قبل الإرسال</p>
+          <div id="reviewContent"></div>
+          <label class="confirm-checkbox">
+            <input type="checkbox" id="confirmCheck">
+            <span data-i18n="confirmText">البيانات دي صحيحة على حد علمي، وموافق إن اللجنة تتواصل معايا بيها.</span>
+          </label>
+          <div class="nav-row">
+            <button type="button" class="btn btn-secondary" id="reviewBackBtn" data-i18n="btnBack">السابق</button>
+            <button type="button" class="btn btn-primary" id="confirmSubmitBtn" data-i18n="btnSubmit">تأكيد
+              الإرسال</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="success" id="successArea">
+        <div class="check">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
+            <path d="M4 12.5l5 5L20 7" stroke="#1668a0" stroke-width="2.5" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+        </div>
+        <h2 data-i18n="successTitle">تم التسجيل بنجاح</h2>
+        <p data-i18n="successBody">شكرًا لتسجيلك مع أسرة صناع الحياة. هيتم التواصل معاك قريبًا من فريق اللجنة.</p>
+
+        <div class="member-card" id="memberCard" style="display:none;">
+          <div class="mc-top">
+            <div>
+              <div class="mc-label" data-i18n="mcLabel">رقم العضوية</div>
+              <div class="mc-no" id="memberNoValue">—</div>
+            </div>
+            <svg class="mc-star" viewBox="0 0 24 24">
+              <path class="star-path"
+                d="M12 1.5l3.09 6.26 6.91 1-5 4.87 1.18 6.87L12 17.27l-6.18 3.23L7 13.63l-5-4.87 6.91-1z" />
+            </svg>
+          </div>
+          <div class="mc-name" id="memberCardName"></div>
+          <div class="mc-bottom-row">
+            <button type="button" class="mc-copy" id="copyMemberNoBtn" data-i18n="copy">نسخ الرقم</button>
+            <canvas id="memberQrCanvas" width="76" height="76" class="mc-qr" style="display:none;"></canvas>
+          </div>
+        </div>
+
+        <div class="success-actions" id="whatsappButtons"></div>
+        <button type="button" class="btn-print" id="printReceiptBtn" style="margin-top:10px;"
+          data-i18n="printReceipt">🖨️ طباعة إيصال التسجيل</button>
+        <p class="email-note" id="emailNote" style="display:none;"></p>
+      </div>
+
+      <div class="success" id="offlineQueuedArea">
+        <div class="check" style="background:rgba(245,171,30,.15);">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#c98a0b" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 8v5M12 16h.01" />
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+        </div>
+        <h2 data-i18n="offlineTitle">تم حفظ بياناتك على جهازك</h2>
+        <p data-i18n="offlineBody">يبدو إنك مش متصل بالإنترنت دلوقتي. بياناتك محفوظة على جهازك وهتتبعت تلقائيًا أول ما
+          النت يرجع — تقدر تقفل الصفحة براحتك.</p>
+      </div>
+
+      <div class="success" id="closedArea">
+        <div class="check" id="closedIconHolder" style="background:rgba(245,171,30,.15);">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#c98a0b" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 8v13M12 3v2" />
+            <circle cx="12" cy="12" r="9" />
+          </svg>
+        </div>
+        <h2 id="closedTitle"></h2>
+        <p id="closedBody"></p>
+        <div class="closed-countdown" id="closedCountdown" style="display:none;"></div>
+        <div class="closed-dates" id="closedDates"></div>
+      </div>
+
+    </div>
+
+    <footer>Osar Sonaa Al-Hayah — Egyptian Universities<br><span style="opacity:.7;font-size:11px;">Built by
+        Youssef Mahrous</span></footer>
+  </div>
+
+  <!-- Printable receipt (only visible when printing) -->
+  <div class="print-only" id="printReceipt">
+    <div
+      style="font-family:'Cairo',sans-serif;border:2px solid #0d2438;border-radius:16px;padding:26px;max-width:480px;margin:0 auto;">
+      <h2 style="margin:0 0 4px;">أسرة صناع الحياة — إيصال تسجيل</h2>
+      <p style="color:#666;margin:0 0 18px;">Osar Sonaa Al-Hayah Registration Receipt</p>
+      <p><strong>الاسم:</strong> <span id="prName"></span></p>
+      <p><strong>رقم العضوية:</strong> <span id="prMemberNo"></span></p>
+      <p><strong>الرقم القومي:</strong> <span id="prNid"></span></p>
+      <p><strong>الصفة:</strong> <span id="prCommittee"></span></p>
+      <p><strong>تاريخ الطباعة:</strong> <span id="prDate"></span></p>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" defer></script>
+  <script>
+    // ==================== CONFIG (kept identical to the working backend) ====================
+    // TODO: paste your deployed Apps Script Web App URL here (see form_backend.gs)
+    const SCRIPT_URL = "PASTE_YOUR_NEW_WEB_APP_URL_HERE"; // TODO: بعد الـ Deploy، الصق رابط الـ Web App بتاعك هنا (مش رابط سند)
+
+    // Cloudinary — used ONLY for the optional video field below. The video
+    // is uploaded straight from the browser to Cloudinary (never through
+    // Apps Script, which chokes on large files), and only the resulting
+    // URL is sent to SCRIPT_URL along with the rest of the form data.
+    // Fill these in from your Cloudinary dashboard — see the "Cloudinary"
+    // section in BACKEND_SETUP_STEPS.md. Leave CLOUD_NAME empty to disable
+    // video upload entirely (the field just won't work if enabled without it).
+    const CLOUDINARY_CLOUD_NAME = "";       // e.g. "dxxxxxxx" — Dashboard ▸ top-left, under your account name
+    const CLOUDINARY_UPLOAD_PRESET = "";    // e.g. "dys_unsigned" — Settings ▸ Upload ▸ Upload presets ▸ Add (Signing Mode: Unsigned)
+    const CLOUDINARY_MAX_VIDEO_MB = 100;    // client-side size guard, adjust to taste
+
+    // Fallback ONLY: used if the backend has no "خيارات بعد التسجيل" configured
+    // yet (or is unreachable when the success screen renders) — see
+    // DYS_SUCCESS_ACTIONS + renderSuccessActionButtons_() below, which is now
+    // the normal, dashboard-driven path (Settings tab ▸ "🎉 خيارات بعد التسجيل").
+    // Committee WhatsApp numbers: digits only, international format (20 + number without the leading 0).
+    // TODO: add أسرة صناع الحياة's own committee WhatsApp number(s) here, e.g.:
+    // { number: "20xxxxxxxxxx", label: "تواصل مع تيم الـ HR" },
+    const DYS_WHATSAPP_NUMBERS_FALLBACK = [
+    ];
+
+    // Populated from ?action=publicConfig (see loadRegistrationConfig below).
+    // Each entry: {id, type, label, value, enabled} — type is one of
+    // "whatsapp_chat" | "whatsapp_group" | "telegram" | "facebook" | "instagram" | "link".
+    let DYS_SUCCESS_ACTIONS = null; // null = "not loaded yet / backend unreachable", not "empty on purpose"
+
+    // Which form/tenant THIS page instance is — read from this page's own
+    // URL (?form=xxx), e.g. dys_form.html?form=f_a1b2c3d4. Missing/empty =
+    // the original default form (see propKey_() in Code.gs) — so the
+    // original link with no ?form= at all keeps working exactly as before.
+    const DYS_FORM_ID = new URLSearchParams(window.location.search).get("form") || "";
+
+    // ==================== i18n ====================
+    const I18N = {
+      ar: {
+        trustNote: "بياناتك بتتبعت مباشرة للجنة ومحدش تاني بيشوفها",
+        pageTitle: "استمارة تسجيل البيانات",
+        pctComplete: "مكتمل",
+        autosaved: "محفوظ تلقائيًا",
+        draftFound: "لقينا مسودة سابقة محفوظة على جهازك.",
+        restoreDraft: "استرجاعها",
+        dismissDraft: "تجاهل",
+        lblName: "الاسم بالكامل", errName: "من فضلك أدخل الاسم بالكامل",
+        lblAge: "العمر", errAge: "أدخل رقم صحيح للعمر (بين 1 و99)",
+        lblGender: "النوع", errGender: "من فضلك اختر النوع", male: "ذكر", female: "أنثى",
+        lblNid: "الرقم القومي", hint14: "(14 رقم)", errNid: "الرقم القومي غير صحيح، من فضلك راجعه",
+        lblPhone: "رقم الهاتف", errPhone: "أدخل رقم هاتف مصري صحيح (11 رقم)",
+        lblWhatsapp: "رقم الواتساب", errWhatsapp: "أدخل رقم واتساب صحيح (11 رقم)",
+        lblEmail: "البريد الإلكتروني", optional: "(اختياري)", errEmail: "صيغة البريد الإلكتروني غير صحيحة",
+        lblFaculty: "الكلية / المدرسة", errFaculty: "من فضلك أدخل الكلية أو المدرسة",
+        lblGraduate: "هل أنت خريج؟", errGraduate: "من فضلك اختر إجابة", yes: "نعم", no: "لا",
+        lblCommittee: "صفتك داخل الكيان", errCommittee: "من فضلك أدخل صفتك داخل الكيان",
+        lblHasJob: "هل تعمل حاليًا؟", errHasJob: "من فضلك اختر إجابة",
+        lblCurrentJob: "طبيعة عملك الحالي",
+        btnBack: "السابق", btnNext: "التالي", btnSubmit: "تأكيد الإرسال",
+        reviewTitle: "راجع بياناتك قبل الإرسال",
+        confirmText: "البيانات دي صحيحة على حد علمي، وموافق إن اللجنة تتواصل معايا بيها.",
+        successTitle: "تم التسجيل بنجاح",
+        successBody: "شكرًا لتسجيلك مع أسرة صناع الحياة. هيتم التواصل معاك قريبًا من فريق اللجنة.",
+        mcLabel: "رقم العضوية", copy: "نسخ الرقم", copied: "اتنسخ ✓",
+        printReceipt: "🖨️ طباعة إيصال التسجيل",
+        step1: "البيانات الشخصية", step2: "بيانات التواصل", step3: "البيانات الدراسية", step4: "اللجنة", step5: "بيانات إضافية",
+        emptyVal: "—", notEntered: "لم يُدخل",
+        submitGeneric: "حصل خطأ أثناء الإرسال. من فضلك حاول تاني.",
+        submitDuplicate: "أنت مسجل بالفعل بنفس الرقم القومي، مفيش داعي تسجل تاني.",
+        retry: "إعادة المحاولة",
+        sending: "جاري الإرسال...",
+        emailSentOk: "بعتنالك رسالة تأكيد على إيميلك.",
+        emailSentFail: "مقدرناش نبعتلك إيميل تأكيد، بس بياناتك اتسجلت بنجاح.",
+        needConfirm: "لازم توافق على صحة البيانات الأول",
+        nidExtracted: (d, m, y, age, gov, mismatch) =>
+          `تاريخ الميلاد: ${d}/${m}/${y} — العمر: ${age} — محافظة الميلاد: ${gov}` + (mismatch ? " — تنبيه: النوع في البطاقة يختلف عن اللي اخترته" : ""),
+        applyBtn: "استخدم البيانات دي",
+        nidChecking: "جاري التأكد إن الرقم القومي مش مسجل قبل كده...",
+        nidDuplicateWarn: "الرقم القومي ده يبدو إنه مسجل قبل كده في اللجنة.",
+        offlineTitle: "تم حفظ بياناتك على جهازك",
+        offlineBody: "يبدو إنك مش متصل بالإنترنت دلوقتي. بياناتك محفوظة على جهازك وهتتبعت تلقائيًا أول ما النت يرجع — تقدر تقفل الصفحة براحتك.",
+        offlineFlushed: "بياناتك اللي كانت متأخرة اتبعتت بنجاح ✓",
+        closedTitleBefore: "التسجيل لسه ما بدأش",
+        closedBodyBefore: "الاستمارة هتفتح قريب، تابعنا عشان تعرف بالظبط إمتى.",
+        closedTitleClosed: "التسجيل قفل دلوقتي",
+        closedBodyClosed: "شكرًا لاهتمامك، الفترة المتاحة للتسجيل خلصت. تابعنا عشان تعرف ميعاد الدورة الجايه.",
+        closedStartLabel: "بداية التسجيل",
+        closedEndLabel: "نهاية التسجيل",
+        closedCountdownPrefix: "هيفتح بعد:",
+      },
+      en: {
+        trustNote: "Your data goes straight to the committee — no one else sees it",
+        pageTitle: "Registration Form",
+        pctComplete: "complete",
+        autosaved: "Saved automatically",
+        draftFound: "We found a previous draft saved on this device.",
+        restoreDraft: "Restore it",
+        dismissDraft: "Dismiss",
+        lblName: "Full name", errName: "Please enter your full name",
+        lblAge: "Age", errAge: "Enter a valid age (between 1 and 99)",
+        lblGender: "Gender", errGender: "Please choose your gender", male: "Male", female: "Female",
+        lblNid: "National ID", hint14: "(14 digits)", errNid: "This National ID looks invalid, please check it",
+        lblPhone: "Phone number", errPhone: "Enter a valid Egyptian phone number (11 digits)",
+        lblWhatsapp: "WhatsApp number", errWhatsapp: "Enter a valid WhatsApp number (11 digits)",
+        lblEmail: "Email", optional: "(optional)", errEmail: "This email format looks invalid",
+        lblFaculty: "Faculty / School", errFaculty: "Please enter your faculty or school",
+        lblGraduate: "Are you a graduate?", errGraduate: "Please choose an answer", yes: "Yes", no: "No",
+        lblCommittee: "Your role in the entity", errCommittee: "Please enter your role in the entity",
+        lblHasJob: "Are you currently working?", errHasJob: "Please choose an answer",
+        lblCurrentJob: "What do you currently do?",
+        btnBack: "Back", btnNext: "Next", btnSubmit: "Confirm & Submit",
+        reviewTitle: "Review your data before sending",
+        confirmText: "This information is correct to my knowledge, and I agree the committee can contact me with it.",
+        successTitle: "Registration successful",
+        successBody: "Thanks for registering with Osar Sonaa Al-Hayah. The committee will reach out to you soon.",
+        mcLabel: "Membership No.", copy: "Copy number", copied: "Copied ✓",
+        printReceipt: "🖨️ Print registration receipt",
+        step1: "Personal info", step2: "Contact info", step3: "Academic info", step4: "Committee", step5: "Extra info",
+        emptyVal: "—", notEntered: "not entered",
+        submitGeneric: "Something went wrong while sending. Please try again.",
+        submitDuplicate: "You're already registered with this National ID, no need to register again.",
+        retry: "Retry",
+        sending: "Sending...",
+        emailSentOk: "We sent you a confirmation email.",
+        emailSentFail: "We couldn't send a confirmation email, but your data was registered successfully.",
+        needConfirm: "Please confirm your data is correct first",
+        nidExtracted: (d, m, y, age, gov, mismatch) =>
+          `Date of birth: ${d}/${m}/${y} — Age: ${age} — Birth governorate: ${gov}` + (mismatch ? " — Note: the ID's gender differs from what you selected" : ""),
+        applyBtn: "Use this data",
+        nidChecking: "Checking whether this National ID is already registered...",
+        nidDuplicateWarn: "This National ID appears to be already registered.",
+        offlineTitle: "Your data is saved on this device",
+        offlineBody: "You seem to be offline right now. Your data is saved on this device and will be sent automatically once you're back online — feel free to close this page.",
+        offlineFlushed: "Your delayed submission was sent successfully ✓",
+        closedTitleBefore: "Registration hasn't opened yet",
+        closedBodyBefore: "The form will open soon, stay tuned for the exact date.",
+        closedTitleClosed: "Registration is closed",
+        closedBodyClosed: "Thanks for your interest — the registration period has ended. Stay tuned for the next round.",
+        closedStartLabel: "Registration opens",
+        closedEndLabel: "Registration closes",
+        closedCountdownPrefix: "Opens in:",
+      }
+    };
+
+    let currentLang = localStorage.getItem("dys_lang") || "ar";
+
+    function t(key, ...args) {
+      const dict = I18N[currentLang] || I18N.ar;
+      const val = dict[key];
+      return typeof val === "function" ? val(...args) : (val ?? key);
+    }
+
+    function applyLang(lang) {
+      currentLang = lang;
+      localStorage.setItem("dys_lang", lang);
+      document.body.setAttribute("dir", lang === "ar" ? "rtl" : "ltr");
+      document.documentElement.setAttribute("lang", lang);
+      document.getElementById("langAr").classList.toggle("active", lang === "ar");
+      document.getElementById("langEn").classList.toggle("active", lang === "en");
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (I18N[lang] && key in I18N[lang]) el.textContent = t(key);
+      });
+      updateStars();
+      computeProgress();
+      renderClosedState();
+    }
+
+    document.getElementById("langAr").addEventListener("click", () => applyLang("ar"));
+    document.getElementById("langEn").addEventListener("click", () => applyLang("en"));
+
+    // ==================== Registration window / logo (server-driven) ====================
+    // Fetched once on load from ?action=publicConfig. Lets an admin set a form
+    // title, a custom logo image, and an open/close window from the dashboard
+    // without ever touching this file.
+    let regConfig = null;
+    let regPhase = "open"; // "before" | "open" | "closed"
+    let countdownTimer = null;
+
+    function formatDateLabel_(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      try {
+        return d.toLocaleString(currentLang === "ar" ? "ar-EG" : "en-GB", { dateStyle: "medium", timeStyle: "short" });
+      } catch (e) { return iso; }
+    }
+
+    function renderClosedState() {
+      if (regPhase === "open" || !regConfig) return;
+      document.getElementById("closedTitle").textContent = regPhase === "before" ? t("closedTitleBefore") : t("closedTitleClosed");
+      document.getElementById("closedBody").textContent = regPhase === "before" ? t("closedBodyBefore") : t("closedBodyClosed");
+
+      const datesBox = document.getElementById("closedDates");
+      datesBox.innerHTML = "";
+      if (regConfig.startAt) {
+        const row = document.createElement("div");
+        row.innerHTML = `<b>${t("closedStartLabel")}:</b> ${formatDateLabel_(regConfig.startAt)}`;
+        datesBox.appendChild(row);
+      }
+      if (regConfig.endAt) {
+        const row = document.createElement("div");
+        row.innerHTML = `<b>${t("closedEndLabel")}:</b> ${formatDateLabel_(regConfig.endAt)}`;
+        datesBox.appendChild(row);
+      }
+
+      const countdownEl = document.getElementById("closedCountdown");
+      clearInterval(countdownTimer);
+      if (regPhase === "before" && regConfig.startAt) {
+        countdownEl.style.display = "block";
+        const tick = () => {
+          const diff = new Date(regConfig.startAt).getTime() - Date.now();
+          if (diff <= 0) { location.reload(); return; }
+          const days = Math.floor(diff / 86400000);
+          const hours = Math.floor((diff % 86400000) / 3600000);
+          const mins = Math.floor((diff % 3600000) / 60000);
+          const secs = Math.floor((diff % 60000) / 1000);
+          const u = currentLang === "ar" ? ["ي", "س", "د", "ث"] : ["d", "h", "m", "s"];
+          countdownEl.textContent = `${t("closedCountdownPrefix")} ${days}${u[0]} ${hours}${u[1]} ${mins}${u[2]} ${secs}${u[3]}`;
+        };
+        tick();
+        countdownTimer = setInterval(tick, 1000);
+      } else {
+        countdownEl.style.display = "none";
+      }
+    }
+
+    function showClosedScreen() {
+      document.getElementById("formArea").style.display = "none";
+      document.getElementById("closedArea").classList.add("visible");
+      renderClosedState();
+    }
+
+    function loadRegistrationConfig() {
+      fetch(`${SCRIPT_URL}?action=publicConfig&form=${encodeURIComponent(DYS_FORM_ID)}&_=${Date.now()}`, { cache: "no-store" })
+        .then(r => r.json())
+        .then(res => {
+          if (res.status !== "success") return;
+          regConfig = res;
+          regPhase = res.phase || "open";
+
+          if (res.formTitle) {
+            document.title = res.formTitle;
+            const titleEl = document.getElementById("formTitleEl");
+            if (titleEl) titleEl.textContent = res.formTitle;
+          }
+          if (res.logoUrl) {
+            const img = document.getElementById("customLogoImg");
+            img.onload = () => {
+              img.style.display = "block";
+              document.getElementById("defaultBadgeSvg").style.display = "none";
+            };
+            img.onerror = () => { img.style.display = "none"; };
+            img.src = res.logoUrl;
+          }
+          if (regPhase !== "open") showClosedScreen();
+          if (res.fieldConfig) applyFieldConfig_(res.fieldConfig);
+          buildDynamicFieldsStep_(res.fieldConfig || {}, res.fieldDefs || {}, res.fieldSections || {}, res.customFields || []);
+          updateVisibleSteps_();
+          // Only enabled entries ever come back from publicConfig (server-side
+          // filter), so this is already exactly what should render.
+          DYS_SUCCESS_ACTIONS = Array.isArray(res.successActions) ? res.successActions : [];
+        })
+        .catch(() => { /* backend unreachable — fall back to "always open", exactly like before */ });
+    }
+
+    // ==================== Egyptian National ID parsing ====================
+    const EGYPT_GOV_CODES = {
+      "01": "القاهرة", "02": "الإسكندرية", "03": "بورسعيد", "04": "السويس",
+      "11": "دمياط", "12": "الدقهلية", "13": "الشرقية", "14": "القليوبية",
+      "15": "كفر الشيخ", "16": "الغربية", "17": "المنوفية", "18": "البحيرة",
+      "19": "الإسماعيلية", "21": "الجيزة", "22": "بني سويف", "23": "الفيوم",
+      "24": "المنيا", "25": "أسيوط", "26": "سوهاج", "27": "قنا", "28": "أسوان",
+      "29": "الأقصر", "31": "البحر الأحمر", "32": "الوادي الجديد", "33": "مطروح",
+      "34": "شمال سيناء", "35": "جنوب سيناء", "88": "مولود بالخارج"
+    };
+
+    function extractNationalIdInfo(id) {
+      id = (id || "").trim();
+      if (!/^[0-9]{14}$/.test(id)) return { valid: false };
+      const centuryDigit = id[0];
+      const centuryMap = { "2": 1900, "3": 2000 };
+      if (!(centuryDigit in centuryMap)) return { valid: false };
+      const yy = parseInt(id.slice(1, 3), 10);
+      const mm = parseInt(id.slice(3, 5), 10);
+      const dd = parseInt(id.slice(5, 7), 10);
+      const govCode = id.slice(7, 9);
+      const genderDigit = parseInt(id[12], 10);
+      if (mm < 1 || mm > 12) return { valid: false };
+      const daysInMonth = new Date(centuryMap[centuryDigit] + yy, mm, 0).getDate();
+      if (dd < 1 || dd > daysInMonth) return { valid: false };
+      if (!(govCode in EGYPT_GOV_CODES)) return { valid: false };
+      const birthYear = centuryMap[centuryDigit] + yy;
+      const genderFromId = (genderDigit % 2 === 1) ? "Male" : "Female";
+      const now = new Date();
+      const age = now.getFullYear() - birthYear - ((now.getMonth() + 1 < mm || (now.getMonth() + 1 === mm && now.getDate() < dd)) ? 1 : 0);
+      if (age < 0 || age > 110) return { valid: false };
+      return { valid: true, birthYear, birthMonth: mm, birthDay: dd, governorate: EGYPT_GOV_CODES[govCode], gender: genderFromId, age };
+    }
+
+    // ==================== State ====================
+    let totalSteps = 4; // becomes 5 if any extra/custom fields are enabled — see buildDynamicFieldsStep_
+    let currentStep = 1;
+    const formLoadedAt = Date.now();
+    const MIN_FILL_MS = 3000;
+    let reviewMode = false;
+
+    const stepsEl = document.querySelectorAll(".step");
+    const starsEl = document.querySelectorAll(".star");
+    const stepLabelEl = document.getElementById("stepLabel");
+    const backBtn = document.getElementById("backBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const form = document.getElementById("dysForm");
+    const submitError = document.getElementById("submitError");
+    const reviewArea = document.getElementById("reviewArea");
+
+    document.querySelectorAll(".choice-pill input").forEach(input => {
+      input.addEventListener("change", () => {
+        const group = input.closest(".choice-group");
+        group.querySelectorAll(".choice-pill").forEach(p => p.classList.remove("selected"));
+        input.closest(".choice-pill").classList.add("selected");
+        const fieldEl = input.closest(".field");
+        clearFieldError(fieldEl);
+        markFieldValid(fieldEl, true);
+
+        if (input.name === "hasJob") {
+          document.getElementById("currentJobField").classList.toggle("show", input.value === "Yes");
+        }
+        if (input.name === "gender") refreshNidInfoDisplay();
+      });
+    });
+
+    const nidInput = form.querySelector('input[name="nationalId"]');
+    const nidInfo = document.getElementById("nidInfo");
+
+    function refreshNidInfoDisplay() {
+      const info = extractNationalIdInfo(nidInput.value);
+      if (!info.valid) { nidInfo.classList.remove("show", "warn"); return; }
+      const genderSelected = getFieldValue("gender");
+      const mismatch = genderSelected && genderSelected !== info.gender;
+      const isDuplicate = nidCheckResult && nidCheckResult.id === nidInput.value && nidCheckResult.exists;
+      let extraLine = "";
+      if (isDuplicate) extraLine = `<div style="margin-top:6px;font-weight:800;">⚠️ ${t("nidDuplicateWarn")}</div>`;
+      nidInfo.innerHTML = t("nidExtracted", info.birthDay, info.birthMonth, info.birthYear, info.age, info.governorate, mismatch) +
+        ` <button type="button" class="nid-apply-btn" id="nidApplyBtn">${t("applyBtn")}</button>` + extraLine;
+      nidInfo.classList.add("show");
+      nidInfo.classList.toggle("warn", mismatch || isDuplicate);
+      const applyBtn = document.getElementById("nidApplyBtn");
+      if (applyBtn) applyBtn.addEventListener("click", () => {
+        setFieldValue("age", String(info.age));
+        setFieldValue("gender", info.gender);
+        computeProgress();
+        refreshNidInfoDisplay();
+      });
+    }
+
+    // ---- Live duplicate-ID check ----
+    // Calls an optional backend route: GET {SCRIPT_URL}?action=checkNid&nationalId=...
+    // expected response: {"status":"success","exists":true|false}
+    // This is a *soft* nicety only — the real duplicate guard still happens on submit
+    // (see the existing res.status === "duplicate" handling). If the backend doesn't
+    // implement this route yet, the check simply fails silently and nothing changes
+    // for the user. Add the matching Apps Script snippet (provided separately) to
+    // enable it for real.
+    let nidCheckController = null;
+    let nidCheckTimer = null;
+    let nidCheckResult = null; // { id, exists }
+
+    function checkNidDuplicate(id) {
+      clearTimeout(nidCheckTimer);
+      nidCheckTimer = setTimeout(() => {
+        if (nidCheckController) nidCheckController.abort();
+        nidCheckController = new AbortController();
+        fetch(`${SCRIPT_URL}?action=checkNid&nationalId=${encodeURIComponent(id)}&form=${encodeURIComponent(DYS_FORM_ID)}&_=${Date.now()}`, { signal: nidCheckController.signal, cache: "no-store" })
+          .then(r => r.json())
+          .then(res => {
+            if (res && res.status === "success" && typeof res.exists === "boolean") {
+              nidCheckResult = { id, exists: res.exists };
+              refreshNidInfoDisplay();
+            }
+          })
+          .catch(() => { /* backend route not available yet, or request aborted — ignore quietly */ });
+      }, 600);
+    }
+
+    nidInput.addEventListener("input", () => {
+      // keep digits only, cap at 14 — friendlier for pasted text with spaces/dashes
+      nidInput.value = nidInput.value.replace(/[^0-9]/g, "").slice(0, 14);
+      nidCheckResult = null;
+      refreshNidInfoDisplay();
+      const info = extractNationalIdInfo(nidInput.value);
+      if (info.valid) checkNidDuplicate(nidInput.value);
+    });
+
+    // digitsOnly() strips everything but numbers — used everywhere a phone/ID value
+    // needs to be validated or sent to the backend, since the *displayed* value is
+    // now formatted with spaces for readability (010 1234 5678).
+    function digitsOnly(v) { return (v || "").replace(/[^0-9]/g, ""); }
+
+    function formatPhoneForDisplay(digits) {
+      digits = digits.slice(0, 11);
+      const p1 = digits.slice(0, 3), p2 = digits.slice(3, 7), p3 = digits.slice(7, 11);
+      return [p1, p2, p3].filter(Boolean).join(" ");
+    }
+
+    // Auto-normalize + auto-format phone-like inputs: strip spaces/dashes, convert +20/0020
+    // prefix to a local 0, then group the digits as the user types (010 1234 5678).
+    ["phone", "whatsapp"].forEach(name => {
+      const el = form.querySelector(`input[name="${name}"]`);
+      el.addEventListener("input", () => {
+        let v = el.value.replace(/[^0-9+]/g, "");
+        if (v.startsWith("+20")) v = "0" + v.slice(3);
+        else if (v.startsWith("0020")) v = "0" + v.slice(4);
+        else if (v.startsWith("20") && v.length > 10) v = "0" + v.slice(2);
+        v = digitsOnly(v).slice(0, 11);
+        el.value = formatPhoneForDisplay(v);
+      });
+    });
+
+    function updateStars() {
+      starsEl.forEach(star => {
+        const step = Number(star.dataset.step);
+        star.classList.toggle("active", step <= currentStep);
+        star.classList.toggle("current", step === currentStep && !reviewMode);
+      });
+      stepLabelEl.textContent = reviewMode ? t("reviewTitle") : t("step" + currentStep);
+    }
+
+    function showStep(step) {
+      reviewMode = false;
+      reviewArea.style.display = "none";
+      form.style.display = "block";
+      stepsEl.forEach(el => el.classList.toggle("visible", Number(el.dataset.step) === step));
+      backBtn.style.visibility = step === 1 ? "hidden" : "visible";
+      nextBtn.textContent = t("btnNext");
+      updateStars();
+      computeProgress();
+    }
+
+    function clearFieldError(fieldEl) { fieldEl.classList.remove("invalid"); }
+    function setFieldError(fieldEl) { fieldEl.classList.remove("valid"); fieldEl.classList.add("invalid"); }
+    function markFieldValid(fieldEl, ok) {
+      if (ok) { fieldEl.classList.remove("invalid"); fieldEl.classList.add("valid"); }
+      else fieldEl.classList.remove("valid");
+    }
+
+    const validators = {
+      name: v => v.trim().length >= 3,
+      age: v => /^[0-9]{1,2}$/.test(v.trim()) && Number(v) > 0 && Number(v) < 100,
+      gender: v => !!v,
+      nationalId: v => extractNationalIdInfo(v).valid,
+      phone: v => /^01[0125][0-9]{8}$/.test(digitsOnly(v)),
+      whatsapp: v => /^01[0125][0-9]{8}$/.test(digitsOnly(v)),
+      email: v => v.trim() === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()),
+      faculty: v => v.trim().length >= 2,
+      graduate: v => !!v,
+      committee: v => v.trim().length >= 2,
+      hasJob: v => !!v,
+    };
+
+    // ---- Field show/hide + required/optional, driven by the dashboard's
+    // "🧩 حقول الاستمارة" settings card (see applyFieldConfig_ call in
+    // loadRegistrationConfig). "name" and "nationalId" are never in here —
+    // they're always shown and required.
+    const TOGGLEABLE_FIELD_KEYS = ["age", "gender", "phone", "whatsapp", "email",
+      "faculty", "graduate", "committee", "hasJob"];
+
+    // Which of the 9 toggleable fields live inside each of the original
+    // static steps (2/3/4). Used by updateVisibleSteps_() below to hide a
+    // whole step (and its star) when every field inside it is disabled —
+    // the same "empty page shouldn't show" behavior step 5 already had.
+    const STATIC_STEP_FIELD_KEYS = {
+      2: ["phone", "whatsapp", "email"],
+      3: ["faculty", "graduate"],
+      4: ["committee", "hasJob"],
+    };
+    // The steps currently shown, in order — starts as all 4, narrowed down
+    // by updateVisibleSteps_() once the dashboard's field config loads.
+    let visibleSteps = [1, 2, 3, 4];
+
+    function setOptionalHint_(fieldEl, show) {
+      const label = fieldEl.querySelector("label");
+      if (!label) return;
+      let hintSpan = label.querySelector(".hint[data-i18n='optional'], .auto-optional-hint");
+      if (show) {
+        if (!hintSpan) {
+          hintSpan = document.createElement("span");
+          hintSpan.className = "hint auto-optional-hint";
+          label.appendChild(document.createTextNode(" "));
+          label.appendChild(hintSpan);
+        }
+        hintSpan.textContent = t("optional");
+        hintSpan.style.display = "";
+      } else if (hintSpan) {
+        hintSpan.style.display = "none";
+      }
+    }
+
+    function applyFieldConfig_(fieldConfig) {
+      TOGGLEABLE_FIELD_KEYS.forEach(key => {
+        const fieldEl = form.querySelector(`[data-key="${key}"]`);
+        if (!fieldEl) return;
+        const conf = fieldConfig[key] || { enabled: true, required: key !== "email" };
+
+        if (!conf.enabled) {
+          fieldEl.style.display = "none";
+          fieldEl.dataset.disabled = "1";
+          if (key === "hasJob") document.getElementById("currentJobField").style.display = "none";
+          return;
+        }
+
+        fieldEl.style.display = "";
+        delete fieldEl.dataset.disabled;
+        fieldEl.dataset.required = conf.required ? "1" : "0";
+        setOptionalHint_(fieldEl, !conf.required);
+      });
+    }
+
+    // Recomputes which steps (2/3/4) actually have at least one enabled
+    // field, hides the star for any step that doesn't, drops that step's
+    // review-screen group, and rebuilds `visibleSteps` — the list the
+    // next/back buttons and the review screen actually navigate through.
+    // Must run AFTER applyFieldConfig_() (needs dataset.disabled to be set)
+    // and AFTER buildDynamicFieldsStep_() (needs the final `totalSteps`,
+    // which is 4 or 5 depending on whether step 5 has any field enabled).
+    function updateVisibleSteps_() {
+      visibleSteps = [1];
+      [2, 3, 4].forEach(step => {
+        const anyEnabled = STATIC_STEP_FIELD_KEYS[step].some(key => {
+          const fieldEl = form.querySelector(`[data-key="${key}"]`);
+          return fieldEl && fieldEl.dataset.disabled !== "1";
+        });
+        const starEl = document.querySelector(`.star[data-step="${step}"]`);
+        if (starEl) starEl.style.display = anyEnabled ? "" : "none";
+        if (anyEnabled) visibleSteps.push(step);
+      });
+      if (totalSteps === 5) visibleSteps.push(5);
+
+      // Drop the review-screen group for any static step (1–4) that just
+      // got hidden. Step 5's group is already added/removed by
+      // buildDynamicFieldsStep_, so it's left untouched here.
+      for (let i = reviewGroups.length - 1; i >= 0; i--) {
+        if (reviewGroups[i].step !== 5 && visibleSteps.indexOf(reviewGroups[i].step) === -1) {
+          reviewGroups.splice(i, 1);
+        }
+      }
+
+      // If the step currently on screen just got hidden (e.g. someone was
+      // sitting on step 2 right as the config disabled it), bump to the
+      // nearest still-visible step so nothing gets stranded.
+      if (visibleSteps.indexOf(currentStep) === -1) {
+        currentStep = visibleSteps[0];
+        showStep(currentStep);
+      } else {
+        updateStars();
+      }
+    }
+
+    // ---- Step 5: extra + custom fields, built entirely at runtime ----
+    // Unlike the 9 fields above (which have fixed HTML that's just shown or
+    // hidden), everything here — the input, the section grouping, the
+    // validator, the review-screen row — is generated purely from what the
+    // dashboard's "🧩 حقول الاستمارة" card sent back in fieldDefs/fieldConfig/
+    // customFields. If nothing is enabled there, step 5 + star 5 never
+    // appear at all (totalSteps stays 4) — this is the "صفحة فاضية متظهرش"
+    // behavior you asked for.
+    const DYNAMIC_FIELD_LABELS = {};
+    const DYNAMIC_FIELD_TYPES = {};
+    const DYNAMIC_CUSTOM_KEYS = {}; // true if the field is admin-added (goes into payload.customFields, not top-level)
+    // Custom fields only — { key: { key: parentKey, value: requiredValue } }.
+    // Populated below in buildDynamicFieldsStep_, read by
+    // evaluateConditionalFields_() to show/hide fields whose visibility
+    // depends on another field's current answer (e.g. a "committee" field
+    // that only appears once "Are you a member?" is answered "Yes").
+    const DYNAMIC_FIELD_DEPENDS = {};
+    const DYNAMIC_SECTION_ORDER = ["personal", "education", "contact", "entity", "other", "custom"];
+
+    function renderDynamicField_(f) {
+      let inner;
+      if (f.type === "photo") {
+        inner = `<input type="hidden" name="${f.key}">
+          <input type="file" accept="image/*" class="photo-file-input">
+          <img class="photo-preview" style="display:none; max-width:130px; max-height:130px; border-radius:10px; margin-top:8px; object-fit:cover;">
+          <div class="hint" style="margin-top:4px;">هترفع صورة، وهنصغّرها تلقائيًا قبل الإرسال.</div>`;
+      } else if (f.type === "video") {
+        inner = `<input type="hidden" name="${f.key}">
+          <input type="file" accept="video/*" class="video-file-input">
+          <video class="video-preview" style="display:none; max-width:220px; max-height:160px; border-radius:10px; margin-top:8px;" controls muted></video>
+          <div class="hint video-status" style="margin-top:4px;">هيترفع مباشرة أول ما تختاره، وهياخد شوية وقت حسب حجمه.</div>`;
+      } else if (f.type === "textarea") {
+        inner = `<textarea name="${f.key}"></textarea>`;
+      } else if (f.type === "select" || f.type === "checkbox") {
+        const opts = f.type === "checkbox" ? [["Yes", "نعم"], ["No", "لا"]] : (f.options || []).map(o => [o, o]);
+        inner = `<div class="choice-group" data-choice="${f.key}">` +
+          opts.map(([val, label]) => `<label class="choice-pill"><input type="radio" name="${f.key}" value="${escapeHtml(val)}"><span>${escapeHtml(label)}</span></label>`).join("") +
+          `</div>`;
+      } else {
+        const inputType = f.type === "number" ? "number" : (f.type === "date" ? "date" : "text");
+        inner = `<input type="${inputType}" name="${f.key}">`;
+      }
+      return `<div class="field" data-key="${f.key}">
+        <label>${escapeHtml(f.label)}</label>
+        ${inner}
+        <div class="error-msg">من فضلك تأكد من الحقل ده</div>
+      </div>`;
+    }
+
+    // Resizes an uploaded image client-side (max 800px on the long edge,
+    // JPEG @ 80% quality) before it ever becomes base64 — an unresized phone
+    // photo can be 5-10MB, which is both slow to upload and needlessly large
+    // to store in Drive for what's shown as a small thumbnail.
+    function resizeImageToBase64_(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error("تعذرت قراءة الصورة"));
+        reader.onload = () => {
+          const img = new Image();
+          img.onerror = () => reject(new Error("الملف ده مش صورة صالحة"));
+          img.onload = () => {
+            const maxDim = 800;
+            let { width, height } = img;
+            if (width > height && width > maxDim) { height = Math.round(height * maxDim / width); width = maxDim; }
+            else if (height > maxDim) { width = Math.round(width * maxDim / height); height = maxDim; }
+            const canvas = document.createElement("canvas");
+            canvas.width = width; canvas.height = height;
+            canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL("image/jpeg", 0.8));
+          };
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    let photoBase64Data_ = "";
+
+    // Uploads a video file straight from the browser to Cloudinary (an
+    // "unsigned" upload — no secret key needed client-side, just the cloud
+    // name + a preset configured as unsigned in the Cloudinary dashboard).
+    // Uses XMLHttpRequest (not fetch) so we can report upload progress for
+    // what might be a large file on a slow connection. Resolves with the
+    // secure HTTPS URL of the uploaded video, or rejects with a message.
+    function uploadVideoToCloudinary_(file, onProgress) {
+      return new Promise((resolve, reject) => {
+        if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
+          reject(new Error("رفع الفيديو مش مفعّل بعد — لازم تحط CLOUDINARY_CLOUD_NAME و CLOUDINARY_UPLOAD_PRESET في أول الملف."));
+          return;
+        }
+        if (file.size > CLOUDINARY_MAX_VIDEO_MB * 1024 * 1024) {
+          reject(new Error(`حجم الفيديو أكبر من ${CLOUDINARY_MAX_VIDEO_MB}MB`));
+          return;
+        }
+        const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`;
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", url, true);
+        xhr.upload.addEventListener("progress", (e) => {
+          if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+        });
+        xhr.onload = () => {
+          try {
+            const res = JSON.parse(xhr.responseText);
+            if (xhr.status >= 200 && xhr.status < 300 && res.secure_url) resolve(res.secure_url);
+            else reject(new Error((res.error && res.error.message) || "فشل رفع الفيديو"));
+          } catch (e) { reject(new Error("فشل رفع الفيديو")); }
+        };
+        xhr.onerror = () => reject(new Error("تعذر الاتصال بـ Cloudinary — تأكد من الإنترنت"));
+        xhr.send(formData);
+      });
+    }
+
+    function buildDynamicFieldsStep_(fieldConfig, fieldDefs, fieldSections, customFields) {
+      const stepEl = document.getElementById("dynamicFieldsStep");
+      const star5 = document.getElementById("star5");
+
+      // Clear anything registered from a previous load (e.g. a stale cached config)
+      Object.keys(DYNAMIC_FIELD_LABELS).forEach(k => {
+        delete validators[k];
+        delete DYNAMIC_FIELD_LABELS[k];
+        delete DYNAMIC_FIELD_TYPES[k];
+        delete DYNAMIC_CUSTOM_KEYS[k];
+        delete DYNAMIC_FIELD_DEPENDS[k];
+      });
+
+      const bySection = {};
+      DYNAMIC_SECTION_ORDER.forEach(s => { bySection[s] = []; });
+
+      Object.keys(fieldDefs).forEach(key => {
+        const conf = fieldConfig[key];
+        if (!conf || !conf.enabled) return;
+        const def = fieldDefs[key];
+        (bySection[def.section] || (bySection[def.section] = [])).push({
+          key, label: def.label, type: def.type, options: def.options, required: !!conf.required, custom: false,
+        });
+      });
+      (customFields || []).forEach(cf => {
+        if (!cf.enabled) return;
+        bySection.custom.push({
+          key: cf.key, label: cf.label, type: cf.type, options: cf.options, required: !!cf.required, custom: true,
+          dependsOnKey: cf.dependsOnKey || "", dependsOnValue: cf.dependsOnValue || "",
+        });
+      });
+
+      let html = "";
+      let anyField = false;
+      DYNAMIC_SECTION_ORDER.forEach(sectionKey => {
+        const fields = bySection[sectionKey];
+        if (!fields || !fields.length) return;
+        anyField = true;
+        html += `<h3 class="dyn-section-title" style="margin:${sectionKey === DYNAMIC_SECTION_ORDER[0] ? "0" : "22px"} 0 4px; font-size:15px;">${escapeHtml(fieldSections[sectionKey] || "")}</h3>`;
+        fields.forEach(f => { html += renderDynamicField_(f); });
+      });
+      stepEl.innerHTML = html;
+
+      const reviewIdx = reviewGroups.findIndex(g => g.step === 5);
+      if (!anyField) {
+        totalSteps = 4;
+        star5.style.display = "none";
+        if (reviewIdx > -1) reviewGroups.splice(reviewIdx, 1);
+        return;
+      }
+
+      totalSteps = 5;
+      star5.style.display = "";
+
+      const stepFiveKeys = [];
+      DYNAMIC_SECTION_ORDER.forEach(sectionKey => {
+        (bySection[sectionKey] || []).forEach(f => {
+          DYNAMIC_FIELD_LABELS[f.key] = f.label;
+          DYNAMIC_FIELD_TYPES[f.key] = f.type;
+          DYNAMIC_CUSTOM_KEYS[f.key] = f.custom;
+          DYNAMIC_FIELD_DEPENDS[f.key] = f.dependsOnKey ? { key: f.dependsOnKey, value: f.dependsOnValue } : null;
+          stepFiveKeys.push(f.key);
+
+          validators[f.key] = (v) => {
+            if (v === "" || v === undefined) return false; // validateStep only calls this when the field isn't optional-empty
+            if (f.type === "photo") return v === "1"; // hidden input is set to "1" only once resize+read succeeds
+            if (f.type === "video") return /^https:\/\//.test(v); // hidden input holds the Cloudinary URL once upload succeeds
+            if (f.type === "select" && f.options) return f.options.indexOf(v) > -1;
+            if (f.type === "checkbox") return v === "Yes" || v === "No";
+            if (f.type === "number") return /^\d+(\.\d+)?$/.test(v);
+            if (f.type === "date") return /^\d{4}-\d{2}-\d{2}$/.test(v);
+            return v.trim().length > 0;
+          };
+
+          const fieldEl = stepEl.querySelector(`[data-key="${f.key}"]`);
+          if (!fieldEl) return;
+          fieldEl.dataset.required = f.required ? "1" : "0";
+          setOptionalHint_(fieldEl, !f.required);
+
+          if (f.type === "photo") {
+            const fileInput = fieldEl.querySelector(".photo-file-input");
+            const hiddenInput = fieldEl.querySelector('input[type="hidden"]');
+            const preview = fieldEl.querySelector(".photo-preview");
+            fileInput.addEventListener("change", () => {
+              const file = fileInput.files[0];
+              if (!file) {
+                photoBase64Data_ = "";
+                hiddenInput.value = "";
+                preview.style.display = "none";
+                validateField(f.key);
+                return;
+              }
+              resizeImageToBase64_(file)
+                .then(dataUrl => {
+                  photoBase64Data_ = dataUrl;
+                  hiddenInput.value = "1";
+                  preview.src = dataUrl;
+                  preview.style.display = "block";
+                  validateField(f.key);
+                })
+                .catch(() => {
+                  photoBase64Data_ = "";
+                  hiddenInput.value = "";
+                  preview.style.display = "none";
+                  fileInput.value = "";
+                  validateField(f.key);
+                });
+            });
+          } else if (f.type === "video") {
+            const fileInput = fieldEl.querySelector(".video-file-input");
+            const hiddenInput = fieldEl.querySelector('input[type="hidden"]');
+            const preview = fieldEl.querySelector(".video-preview");
+            const statusEl = fieldEl.querySelector(".video-status");
+            const defaultStatusText = statusEl.textContent;
+            fileInput.addEventListener("change", () => {
+              const file = fileInput.files[0];
+              hiddenInput.value = "";
+              preview.style.display = "none";
+              validateField(f.key);
+              if (!file) { statusEl.textContent = defaultStatusText; return; }
+
+              fileInput.disabled = true;
+              nextBtn.disabled = true;
+              statusEl.textContent = "⏳ جاري الرفع... 0%";
+              uploadVideoToCloudinary_(file, (pct) => { statusEl.textContent = `⏳ جاري الرفع... ${pct}%`; })
+                .then(secureUrl => {
+                  hiddenInput.value = secureUrl;
+                  preview.src = secureUrl;
+                  preview.style.display = "block";
+                  statusEl.textContent = "✅ الفيديو اترفع بنجاح";
+                  validateField(f.key);
+                })
+                .catch(err => {
+                  hiddenInput.value = "";
+                  statusEl.textContent = "❌ " + err.message;
+                  fileInput.value = "";
+                  validateField(f.key);
+                })
+                .finally(() => {
+                  fileInput.disabled = false;
+                  nextBtn.disabled = false;
+                });
+            });
+          } else {
+            const input = fieldEl.querySelector("input, textarea");
+            if (input) {
+              input.addEventListener("blur", () => { if (validators[f.key]) validateField(f.key); });
+              input.addEventListener("input", () => evaluateConditionalFields_());
+            }
+            // Same "light up the picked pill" behavior the 9 built-in fields
+            // get from the page-load-time listener further up — that one
+            // only ever saw the pills that existed in the DOM at load time,
+            // so anything built here at runtime (custom fields, extra
+            // fields) never got highlighted on tap even though the value
+            // WAS being recorded correctly underneath.
+            fieldEl.querySelectorAll(".choice-group input").forEach(r => {
+              r.addEventListener("change", () => {
+                const group = r.closest(".choice-group");
+                group.querySelectorAll(".choice-pill").forEach(p => p.classList.remove("selected"));
+                r.closest(".choice-pill").classList.add("selected");
+                validateField(f.key);
+                evaluateConditionalFields_();
+              });
+            });
+          }
+        });
+      });
+
+      const stepFive = { step: 5, titleKey: "step5", keys: stepFiveKeys };
+      if (reviewIdx > -1) reviewGroups[reviewIdx] = stepFive; else reviewGroups.push(stepFive);
+
+      evaluateConditionalFields_(); // set correct initial show/hide before the user's even touched anything
+    }
+
+    // Shows/hides every custom field that has a "شرط ظهور" (visibility
+    // condition) set in the dashboard, based on the CURRENT value of the
+    // field it depends on — e.g. a "committee" field that only appears once
+    // "Are you a member?" is answered "Yes". Runs on load, after a draft
+    // restore, and every time any dynamic field changes (since any of them
+    // could be someone else's dependency target).
+    function evaluateConditionalFields_() {
+      let changed = false;
+      Object.keys(DYNAMIC_FIELD_DEPENDS).forEach(key => {
+        const dep = DYNAMIC_FIELD_DEPENDS[key];
+        if (!dep) return;
+        const fieldEl = form.querySelector(`[data-key="${key}"]`);
+        if (!fieldEl) return;
+        const shouldShow = getFieldValue(dep.key) === dep.value;
+        const isCurrentlyHidden = fieldEl.dataset.disabled === "1";
+        if (shouldShow !== isCurrentlyHidden) return; // already in the right state
+        changed = true;
+        fieldEl.style.display = shouldShow ? "" : "none";
+        fieldEl.dataset.disabled = shouldShow ? "0" : "1";
+        if (!shouldShow) {
+          // Clear whatever was picked so a stale answer never lingers into
+          // the submitted data once the field's condition no longer holds
+          // (e.g. someone picks a committee, then changes their mind about
+          // being a member — the old committee pick shouldn't quietly ride
+          // along in the background).
+          const choiceGroup = fieldEl.querySelector(".choice-group");
+          if (choiceGroup) {
+            choiceGroup.querySelectorAll("input:checked").forEach(i => { i.checked = false; });
+            choiceGroup.querySelectorAll(".choice-pill").forEach(p => p.classList.remove("selected"));
+          } else {
+            const input = fieldEl.querySelector("input, textarea");
+            if (input) input.value = "";
+          }
+          clearFieldError(fieldEl);
+          fieldEl.classList.remove("valid");
+        }
+      });
+      if (changed) computeProgress();
+    }
+
+    function getFieldValue(key) {
+      const fieldEl = form.querySelector(`[data-key="${key}"]`);
+      if (!fieldEl) return "";
+      const choiceGroup = fieldEl.querySelector(".choice-group");
+      if (choiceGroup) {
+        const checked = choiceGroup.querySelector("input:checked");
+        return checked ? checked.value : "";
+      }
+      const input = fieldEl.querySelector("input, textarea");
+      return input ? input.value : "";
+    }
+
+    function setFieldValue(key, value) {
+      const fieldEl = form.querySelector(`[data-key="${key}"]`);
+      if (!fieldEl || value === undefined || value === "") return;
+      const choiceGroup = fieldEl.querySelector(".choice-group");
+      if (choiceGroup) {
+        const radio = choiceGroup.querySelector(`input[value="${value}"]`);
+        if (radio) {
+          radio.checked = true;
+          choiceGroup.querySelectorAll(".choice-pill").forEach(p => p.classList.remove("selected"));
+          radio.closest(".choice-pill").classList.add("selected");
+          if (key === "hasJob") document.getElementById("currentJobField").classList.toggle("show", value === "Yes");
+        }
+        return;
+      }
+      const input = fieldEl.querySelector("input, textarea");
+      if (input) input.value = value;
+    }
+
+    function validateField(key) {
+      const fieldEl = form.querySelector(`[data-key="${key}"]`);
+      if (!fieldEl || !validators[key]) return true;
+      if (fieldEl.dataset.disabled === "1") return true; // hidden via field config — nothing to validate
+      if (fieldEl.dataset.required === "0" && getFieldValue(key) === "") {
+        clearFieldError(fieldEl); fieldEl.classList.remove("valid"); // optional + empty — fine
+        return true;
+      }
+      const ok = validators[key](getFieldValue(key));
+      if (getFieldValue(key) === "" && key !== "gender" && key !== "graduate" && key !== "hasJob") {
+        clearFieldError(fieldEl); fieldEl.classList.remove("valid"); // don't shout errors before user types anything
+        return ok;
+      }
+      if (!ok) setFieldError(fieldEl); else markFieldValid(fieldEl, true);
+      return ok;
+    }
+
+    // live validation as the user types/selects
+    form.querySelectorAll('.field[data-key] input, .field[data-key] textarea').forEach(input => {
+      input.addEventListener("blur", () => {
+        const key = input.closest(".field").dataset.key;
+        if (validators[key]) validateField(key);
+      });
+      input.addEventListener("keydown", e => {
+        if (e.key === "Enter" && input.tagName !== "TEXTAREA") {
+          e.preventDefault();
+          nextBtn.click();
+        }
+      });
+    });
+
+    function validateStep(step) {
+      const stepEl = form.querySelector(`.step[data-step="${step}"]`);
+      let valid = true;
+      let firstInvalid = null;
+      stepEl.querySelectorAll(".field[data-key]").forEach(fieldEl => {
+        const key = fieldEl.dataset.key;
+        if (!validators[key]) return;
+        if (fieldEl.dataset.disabled === "1") return; // hidden via field config — skip entirely
+        const value = getFieldValue(key);
+        if (fieldEl.dataset.required === "0" && value === "") {
+          clearFieldError(fieldEl); // optional + empty — fine, don't block the step
+          return;
+        }
+        if (!validators[key](value)) {
+          setFieldError(fieldEl);
+          valid = false;
+          if (!firstInvalid) firstInvalid = fieldEl;
+        } else {
+          clearFieldError(fieldEl);
+          markFieldValid(fieldEl, true);
+        }
+      });
+      if (firstInvalid) firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
+      return valid;
+    }
+
+    function collectAllData() {
+      const keys = ["name", "age", "gender", "nationalId", "phone", "whatsapp", "email",
+        "faculty", "graduate", "committee", "hasJob", "currentJob"];
+      const data = {};
+      keys.forEach(k => {
+        const fieldEl = form.querySelector(`[data-key="${k}"]`);
+        data[k] = (fieldEl && fieldEl.dataset.disabled !== "1") ? getFieldValue(k).trim() : "";
+      });
+      data.phone = digitsOnly(data.phone);
+      data.whatsapp = digitsOnly(data.whatsapp);
+      data.website = document.getElementById("website").value; // honeypot
+      data.loadedAt = formLoadedAt;
+      data.formId = DYS_FORM_ID; // which form/tenant this submission belongs to — see propKey_() in Code.gs
+
+      // Dynamic extra fields (data.address, data.birthDate, ...) + custom
+      // fields (data.customFields.c_xxxxx, ...) — see buildDynamicFieldsStep_.
+      // If a field is disabled, its key just never appears here — the
+      // backend defaults any missing field to "" on its own.
+      data.customFields = {};
+      Object.keys(DYNAMIC_FIELD_LABELS).forEach(key => {
+        const fieldEl = form.querySelector(`[data-key="${key}"]`);
+        if (fieldEl && fieldEl.dataset.disabled === "1") return; // condition not met right now — nothing to send
+        if (DYNAMIC_FIELD_TYPES[key] === "photo") {
+          data.photoBase64 = photoBase64Data_ || "";
+          return;
+        }
+        if (DYNAMIC_FIELD_TYPES[key] === "video") {
+          data.videoUrl = getFieldValue(key).trim(); // already a Cloudinary URL by now, or ""
+          return;
+        }
+        const value = getFieldValue(key).trim();
+        if (DYNAMIC_CUSTOM_KEYS[key]) data.customFields[key] = value;
+        else data[key] = value;
+      });
+
+      return data;
+    }
+
+    // ==================== Review screen ====================
+    const reviewGroups = [
+      { step: 1, titleKey: "step1", keys: ["name", "age", "gender", "nationalId"] },
+      { step: 2, titleKey: "step2", keys: ["phone", "whatsapp", "email"] },
+      { step: 3, titleKey: "step3", keys: ["faculty", "graduate"] },
+      { step: 4, titleKey: "step4", keys: ["committee", "hasJob", "currentJob"] },
+    ];
+
+    function labelFor(key) {
+      const map = {
+        name: "lblName", age: "lblAge", gender: "lblGender", nationalId: "lblNid",
+        phone: "lblPhone", whatsapp: "lblWhatsapp", email: "lblEmail",
+        faculty: "lblFaculty", graduate: "lblGraduate", committee: "lblCommittee", hasJob: "lblHasJob",
+        currentJob: "lblCurrentJob"
+      };
+      if (map[key]) return t(map[key]);
+      return DYNAMIC_FIELD_LABELS[key] || key;
+    }
+
+    function displayValueFor(key) {
+      const raw = getFieldValue(key);
+      if (!raw) return { text: t("notEntered"), empty: true };
+      if (key === "gender") return { text: raw === "Male" ? t("male") : t("female"), empty: false };
+      if (key === "graduate" || key === "hasJob") return { text: raw === "Yes" ? t("yes") : t("no"), empty: false };
+      if (DYNAMIC_FIELD_TYPES[key] === "checkbox") return { text: raw === "Yes" ? t("yes") : t("no"), empty: false };
+      if (DYNAMIC_FIELD_TYPES[key] === "photo") return { text: "تم اختيار صورة ✓", empty: false };
+      if (DYNAMIC_FIELD_TYPES[key] === "video") return { text: "تم رفع الفيديو ✓", empty: false };
+      return { text: raw, empty: false };
+    }
+
+    function renderReview() {
+      const container = document.getElementById("reviewContent");
+      container.innerHTML = "";
+      reviewGroups.forEach(group => {
+        const div = document.createElement("div");
+        div.className = "review-group";
+        const head = document.createElement("div");
+        head.className = "review-group-head";
+        head.innerHTML = `<h4>${t(group.titleKey)}</h4><button type="button" class="review-edit-btn">${t("btnBack") === "Back" ? "Edit" : "تعديل"}</button>`;
+        head.querySelector("button").addEventListener("click", () => { showStep(group.step); });
+        div.appendChild(head);
+        group.keys.forEach(key => {
+          if (key === "currentJob" && getFieldValue("hasJob") !== "Yes") return;
+          const fieldEl = form.querySelector(`[data-key="${key}"]`);
+          if (fieldEl && fieldEl.dataset.disabled === "1") return; // hidden via field config
+          const { text, empty } = displayValueFor(key);
+          const row = document.createElement("div");
+          row.className = "review-row";
+          row.innerHTML = `<span class="k">${labelFor(key)}</span><span class="v ${empty ? "empty" : ""}">${escapeHtml(text)}</span>`;
+          div.appendChild(row);
+        });
+        container.appendChild(div);
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+    }
+
+    function showReview() {
+      reviewMode = true;
+      form.style.display = "none";
+      reviewArea.style.display = "block";
+      document.getElementById("confirmCheck").checked = false;
+      renderReview();
+      updateStars();
+    }
+
+    document.getElementById("reviewBackBtn").addEventListener("click", () => showStep(visibleSteps[visibleSteps.length - 1]));
+
+    nextBtn.addEventListener("click", () => {
+      if (!validateStep(currentStep)) return;
+      const idx = visibleSteps.indexOf(currentStep);
+      if (idx < visibleSteps.length - 1) { currentStep = visibleSteps[idx + 1]; showStep(currentStep); return; }
+      showReview();
+    });
+
+    backBtn.addEventListener("click", () => {
+      const idx = visibleSteps.indexOf(currentStep);
+      if (idx > 0) { currentStep = visibleSteps[idx - 1]; showStep(currentStep); }
+    });
+
+    document.getElementById("confirmSubmitBtn").addEventListener("click", () => {
+      if (!document.getElementById("confirmCheck").checked) {
+        submitError.innerHTML = `<span>${t("needConfirm")}</span>`;
+        submitError.classList.add("visible");
+        return;
+      }
+      submitForm();
+    });
+
+    // Builds the row of buttons shown right after a successful submission
+    // (HR WhatsApp, group links, socials, ...), fully driven by whatever the
+    // dashboard's "🎉 خيارات بعد التسجيل" card has enabled — see
+    // loadRegistrationConfig() above, which fills DYS_SUCCESS_ACTIONS from
+    // ?action=publicConfig. Falls back to DYS_WHATSAPP_NUMBERS_FALLBACK only
+    // if the backend never returned a config at all (offline/unreachable) —
+    // once the backend responds even with an empty list, that's respected as
+    // "admin turned everything off on purpose" and nothing is shown.
+    function renderSuccessActionButtons_(payload, res) {
+      const name = payload.name || "";
+      const memberNo = res.membershipNo || "";
+      const waMsg = encodeURIComponent(`السلام عليكم، أنا ${name}، رقم عضويتي ${memberNo}، سجّلت في استمارة أسرة صناع الحياة.`);
+      const waContainer = document.getElementById("whatsappButtons");
+      waContainer.innerHTML = "";
+
+      const actions = DYS_SUCCESS_ACTIONS !== null
+        ? DYS_SUCCESS_ACTIONS
+        : DYS_WHATSAPP_NUMBERS_FALLBACK.map(entry => ({ type: "whatsapp_chat", label: entry.label, value: entry.number, enabled: true }));
+
+      actions.forEach(entry => {
+        if (!entry || !entry.value) return;
+        const a = document.createElement("a");
+        a.target = "_blank";
+        a.rel = "noopener";
+        a.textContent = entry.label || "تواصل معانا";
+        switch (entry.type) {
+          case "whatsapp_chat":
+            a.href = `https://wa.me/${entry.value}?text=${waMsg}`;
+            a.className = "btn-whatsapp";
+            break;
+          case "whatsapp_group":
+            a.href = entry.value;
+            a.className = "btn-whatsapp";
+            break;
+          case "telegram":
+            a.href = entry.value;
+            a.className = "btn-whatsapp sa-telegram";
+            break;
+          case "facebook":
+            a.href = entry.value;
+            a.className = "btn-whatsapp sa-facebook";
+            break;
+          case "instagram":
+            a.href = entry.value;
+            a.className = "btn-whatsapp sa-instagram";
+            break;
+          default: // "link" and anything unrecognized
+            a.href = entry.value;
+            a.className = "btn-whatsapp sa-link";
+        }
+        waContainer.appendChild(a);
+      });
+    }
+
+    // ==================== Submit ====================
+    function showSuccessScreen(payload, res) {
+      document.getElementById("formArea").style.display = "none";
+      document.getElementById("offlineQueuedArea").classList.remove("visible");
+      document.getElementById("successArea").classList.add("visible");
+      try { localStorage.removeItem(DRAFT_KEY); } catch (e) { }
+      launchConfetti();
+
+      if (res.membershipNo) {
+        document.getElementById("memberNoValue").textContent = res.membershipNo;
+        document.getElementById("memberCardName").textContent = payload.name || "";
+        document.getElementById("memberCard").style.display = "block";
+        renderMemberQr(`OSH|${res.membershipNo}|${payload.name || ""}`);
+      }
+
+      renderSuccessActionButtons_(payload, res);
+
+      const emailNote = document.getElementById("emailNote");
+      if (payload.email) {
+        emailNote.textContent = res.emailSent ? t("emailSentOk") : t("emailSentFail");
+        emailNote.style.display = "block";
+      }
+
+      document.getElementById("prName").textContent = payload.name || "";
+      document.getElementById("prMemberNo").textContent = res.membershipNo || "-";
+      document.getElementById("prNid").textContent = payload.nationalId || "-";
+      document.getElementById("prCommittee").textContent = payload.committee || "-";
+      document.getElementById("prDate").textContent = new Date().toLocaleDateString("ar-EG");
+    }
+
+    // performSubmit() does the raw network call and resolves/rejects — used both
+    // by the interactive "Confirm & submit" button and by the offline queue flush.
+    function performSubmit(payload) {
+      return fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload),
+      }).then(r => r.json());
+    }
+
+    // ==================== Offline queue ====================
+    // If the connection drops right when the person hits submit, we don't want
+    // to just show a scary error and make them lose their place in a 4-step form.
+    // Instead we save the payload on-device and resend it automatically the
+    // moment the browser reports it's back online (or next time the page loads).
+    const PENDING_KEY = "dys_pending_submissions_v1";
+
+    function readPendingQueue() {
+      try { return JSON.parse(localStorage.getItem(PENDING_KEY) || "[]"); } catch (e) { return []; }
+    }
+    function writePendingQueue(list) {
+      try { localStorage.setItem(PENDING_KEY, JSON.stringify(list)); } catch (e) { /* ignore */ }
+    }
+
+    function queueOfflineSubmission(payload) {
+      const list = readPendingQueue();
+      list.push({ payload, queuedAt: Date.now() });
+      writePendingQueue(list);
+      try { localStorage.removeItem(DRAFT_KEY); } catch (e) { }
+
+      document.getElementById("formArea").style.display = "none";
+      document.getElementById("successArea").classList.remove("visible");
+      const offlineArea = document.getElementById("offlineQueuedArea");
+      offlineArea.classList.add("visible");
+    }
+
+    let flushInProgress = false;
+    function flushPendingSubmissions(silent) {
+      if (flushInProgress) return; // avoid double-sending if 'online' and 'load' fire close together
+      const list = readPendingQueue();
+      if (!list.length) return;
+      if (!navigator.onLine) return;
+
+      flushInProgress = true;
+      const remaining = [];
+      let lastSuccess = null;
+
+      const processNext = (i) => {
+        if (i >= list.length) {
+          writePendingQueue(remaining);
+          flushInProgress = false;
+          if (lastSuccess && !silent) {
+            showSuccessScreen(lastSuccess.payload, lastSuccess.res);
+          } else if (lastSuccess) {
+            toastIfAvailable(t("offlineFlushed"));
+          }
+          return;
+        }
+        const item = list[i];
+        performSubmit(item.payload)
+          .then(res => {
+            if (res.status === "success" || res.status === "duplicate") {
+              lastSuccess = { payload: item.payload, res };
+            } else {
+              remaining.push(item); // unexpected shape — keep it queued, try again later
+            }
+          })
+          .catch(() => { remaining.push(item); })
+          .finally(() => processNext(i + 1));
+      };
+      processNext(0);
+    }
+
+    function toastIfAvailable(msg) {
+      // the form page has no toast system of its own (unlike the dashboard) —
+      // a lightweight inline banner is enough here.
+      const banner = document.createElement("div");
+      banner.textContent = msg;
+      banner.style.cssText = "position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#0e3c5c;color:#fff;padding:10px 18px;border-radius:12px;font-family:Cairo,sans-serif;font-size:13px;z-index:999;box-shadow:0 10px 30px rgba(0,0,0,.3);";
+      document.body.appendChild(banner);
+      setTimeout(() => banner.remove(), 3200);
+    }
+
+    window.addEventListener("online", () => flushPendingSubmissions(true));
+    window.addEventListener("load", () => flushPendingSubmissions(true));
+
+    function submitForm(isRetry) {
+      submitError.classList.remove("visible");
+      const confirmBtn = document.getElementById("confirmSubmitBtn");
+
+      const hp = document.getElementById("website").value;
+      const elapsed = Date.now() - formLoadedAt;
+      if (hp || (elapsed < MIN_FILL_MS && !isRetry)) {
+        submitError.innerHTML = `<span>${t("submitGeneric")}</span>`;
+        submitError.classList.add("visible");
+        return;
+      }
+
+      const payload = collectAllData();
+
+      // Already offline? Don't even try the network — queue right away.
+      if (!navigator.onLine) {
+        queueOfflineSubmission(payload);
+        return;
+      }
+
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = t("sending");
+
+      performSubmit(payload)
+        .then(res => {
+          if (res.status === "success") {
+            showSuccessScreen(payload, res);
+          } else if (res.status === "duplicate") {
+            submitError.innerHTML = `<span>${t("submitDuplicate")}</span>`;
+            submitError.classList.add("visible");
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = t("btnSubmit");
+          } else if (res.status === "not_started" || res.status === "closed") {
+            // The registration window changed while this person was filling the
+            // form (e.g. it just closed) — show the same closed/not-open screen
+            // instead of a confusing generic error.
+            regConfig = { startAt: res.startAt || "", endAt: res.endAt || "" };
+            regPhase = res.status === "not_started" ? "before" : "closed";
+            showClosedScreen();
+          } else {
+            throw new Error(res.message || "unexpected error");
+          }
+        })
+        .catch((err) => {
+          console.error("Registration form submit failed:", err);
+          // A generic network failure (not an HTTP/logic error) is treated as
+          // "probably offline" — queue it instead of just showing an error.
+          const looksLikeNetworkFailure = err instanceof TypeError;
+          if (looksLikeNetworkFailure) {
+            queueOfflineSubmission(payload);
+            return;
+          }
+          submitError.innerHTML = `<span>${t("submitGeneric")}</span> <button type="button" id="retryBtn">${t("retry")}</button>`;
+          submitError.classList.add("visible");
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = t("btnSubmit");
+          const retryBtn = document.getElementById("retryBtn");
+          if (retryBtn) retryBtn.addEventListener("click", () => submitForm(true));
+        });
+    }
+
+    document.getElementById("copyMemberNoBtn").addEventListener("click", () => {
+      const val = document.getElementById("memberNoValue").textContent;
+      navigator.clipboard.writeText(val).then(() => {
+        const btn = document.getElementById("copyMemberNoBtn");
+        const original = btn.textContent;
+        btn.textContent = t("copied");
+        setTimeout(() => { btn.textContent = original; }, 1500);
+      });
+    });
+
+    document.getElementById("printReceiptBtn").addEventListener("click", () => window.print());
+
+    // ==================== QR code for the membership card ====================
+    // Uses the tiny "qrcode-generator" library (pure JS, no image assets) loaded
+    // from cdnjs. If it fails to load (e.g. offline), the QR canvas is simply
+    // left hidden — everything else on the success screen keeps working.
+    function renderMemberQr(text) {
+      const canvas = document.getElementById("memberQrCanvas");
+      try {
+        if (typeof qrcode === "undefined") return;
+        const qr = qrcode(0, "M");
+        qr.addData(text);
+        qr.make();
+        const count = qr.getModuleCount();
+        const size = canvas.width;
+        const cell = size / count;
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, size, size);
+        ctx.fillStyle = "#0d2438";
+        for (let r = 0; r < count; r++) {
+          for (let c2 = 0; c2 < count; c2++) {
+            if (qr.isDark(r, c2)) ctx.fillRect(c2 * cell, r * cell, cell, cell);
+          }
+        }
+        canvas.style.display = "block";
+      } catch (e) {
+        console.warn("QR generation skipped:", e);
+      }
+    }
+
+    // ==================== Progress bar ====================
+    const progressFillEl = document.getElementById("progressFill");
+    const progressPctEl = document.getElementById("progressPct");
+    const trackedKeys = ["name", "age", "gender", "nationalId", "phone", "whatsapp", "email",
+      "faculty", "graduate", "committee", "hasJob", "currentJob"];
+
+    function computeProgress() {
+      let total = 0, filled = 0;
+      trackedKeys.forEach(k => {
+        if (k === "currentJob" && getFieldValue("hasJob") !== "Yes") return;
+        const fieldEl = form.querySelector(`[data-key="${k}"]`);
+        if (!fieldEl || fieldEl.dataset.disabled === "1") return; // hidden via field config
+        total++;
+        if (getFieldValue(k)) filled++;
+      });
+      const pct = total ? Math.round((filled / total) * 100) : 0;
+      progressFillEl.style.width = pct + "%";
+      progressPctEl.innerHTML = pct + "% <span data-i18n='pctComplete'>" + t("pctComplete") + "</span>";
+    }
+
+    // ==================== Draft auto-save (local device only) ====================
+    const DRAFT_KEY = "dys_registration_draft_v2";
+    const draftBanner = document.getElementById("draftBanner");
+    const autosaveNote = document.getElementById("autosaveNote");
+    let draftSaveTimer = null;
+
+    function saveDraft() {
+      try {
+        const data = collectAllData();
+        delete data.website;
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ data, step: currentStep, savedAt: Date.now() }));
+        autosaveNote.classList.add("show");
+        clearTimeout(autosaveNote._hideTimer);
+        autosaveNote._hideTimer = setTimeout(() => autosaveNote.classList.remove("show"), 2200);
+      } catch (e) { /* private browsing etc — fail silently */ }
+    }
+
+    function scheduleDraftSave() { clearTimeout(draftSaveTimer); draftSaveTimer = setTimeout(saveDraft, 500); }
+
+    function loadDraftIfAny() {
+      let raw;
+      try { raw = localStorage.getItem(DRAFT_KEY); } catch (e) { return; }
+      if (!raw) return;
+      try {
+        const draft = JSON.parse(raw);
+        if (!draft || !draft.data) return;
+        draftBanner.classList.add("show");
+
+        document.getElementById("restoreDraftBtn").addEventListener("click", () => {
+          Object.keys(draft.data).forEach(k => setFieldValue(k, draft.data[k]));
+          evaluateConditionalFields_();
+          currentStep = draft.step && visibleSteps.indexOf(draft.step) > -1 ? draft.step : visibleSteps[0];
+          showStep(currentStep);
+          refreshNidInfoDisplay();
+          draftBanner.classList.remove("show");
+        }, { once: true });
+
+        document.getElementById("dismissDraftBtn").addEventListener("click", () => {
+          try { localStorage.removeItem(DRAFT_KEY); } catch (e) { }
+          draftBanner.classList.remove("show");
+        }, { once: true });
+      } catch (e) { /* corrupted draft */ }
+    }
+
+    form.addEventListener("input", () => { computeProgress(); scheduleDraftSave(); });
+    form.addEventListener("change", () => { computeProgress(); scheduleDraftSave(); });
+
+    // ==================== Confetti (vanilla, no dependency) ====================
+    function launchConfetti() {
+      const canvas = document.getElementById("confettiCanvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+      const colors = ["#1668a0", "#f5ab1e", "#0a4b73", "#ffffff", "#8fc7e8"];
+      const pieces = Array.from({ length: 120 }, () => ({
+        x: Math.random() * canvas.width, y: -20 - Math.random() * canvas.height * .4,
+        r: 4 + Math.random() * 5, c: colors[Math.floor(Math.random() * colors.length)],
+        vy: 2 + Math.random() * 3, vx: -1.5 + Math.random() * 3, rot: Math.random() * 360, vr: -6 + Math.random() * 12
+      }));
+      let frame = 0;
+      const maxFrames = 220;
+      function tick() {
+        frame++;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        pieces.forEach(p => {
+          p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot * Math.PI / 180);
+          ctx.fillStyle = p.c; ctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r * .6);
+          ctx.restore();
+        });
+        if (frame < maxFrames) requestAnimationFrame(tick);
+        else ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      requestAnimationFrame(tick);
+    }
+    window.addEventListener("resize", () => {
+      const canvas = document.getElementById("confettiCanvas");
+      canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    });
+
+    // ==================== PWA: service worker registration ====================
+    // Registered defensively — if sw.js isn't hosted next to this page (e.g. it
+    // hasn't been uploaded yet, or the host doesn't allow custom paths), this
+    // just fails silently and the form works exactly as before, online-only.
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js").catch(() => { /* PWA shell caching unavailable — that's fine */ });
+      });
+    }
+
+    // ==================== AI chat assistant (registrant-facing) ====================
+    const AI_QUICK_QUESTIONS_FORM = [
+      "التسجيل بيقفل امتى؟",
+      "لازم أملى كل الحقول؟",
+      "فيه جروب واتساب بعد التسجيل؟",
+      "إزاي أتأكد إن تسجيلي نجح؟",
+    ];
+    let aiChatHistoryForm = [];
+    let aiChatOpenedForm = false;
+
+    function aiAppendMessageForm_(role, text, isTyping) {
+      const box = document.getElementById("aiChatMessages");
+      const div = document.createElement("div");
+      div.className = "ai-msg " + role + (isTyping ? " typing" : "");
+      div.textContent = text;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+      return div;
+    }
+
+    function aiRenderQuickQuestionsForm_() {
+      const box = document.getElementById("aiChatQuick");
+      box.innerHTML = "";
+      AI_QUICK_QUESTIONS_FORM.forEach(q => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = q;
+        btn.addEventListener("click", () => aiSendMessageForm_(q));
+        box.appendChild(btn);
+      });
+    }
+
+    function aiSendMessageForm_(text) {
+      text = (text || document.getElementById("aiChatInput").value).trim();
+      if (!text) return;
+      document.getElementById("aiChatInput").value = "";
+      aiAppendMessageForm_("user", text);
+      const sendBtn = document.getElementById("aiChatSend");
+      sendBtn.disabled = true;
+      const typingEl = aiAppendMessageForm_("bot", "بيكتب...", true);
+
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "chatAI", context: "form", formId: DYS_FORM_ID, message: text, history: aiChatHistoryForm }),
+      })
+        .then(r => r.json())
+        .then(res => {
+          typingEl.remove();
+          if (res.status === "success") {
+            aiAppendMessageForm_("bot", res.reply);
+            aiChatHistoryForm.push({ role: "user", text });
+            aiChatHistoryForm.push({ role: "bot", text: res.reply });
+          } else {
+            aiAppendMessageForm_("bot", res.message || "حصل خطأ، جرب تاني.");
+          }
+        })
+        .catch(() => {
+          typingEl.remove();
+          aiAppendMessageForm_("bot", "تعذر الاتصال — جرب تاني.");
+        })
+        .finally(() => { sendBtn.disabled = false; });
+    }
+
+    function initAiChatForm_() {
+      const bubble = document.getElementById("aiChatBubble");
+      bubble.classList.add("visible");
+      bubble.addEventListener("click", () => {
+        const panel = document.getElementById("aiChatPanel");
+        panel.classList.toggle("open");
+        if (panel.classList.contains("open") && !aiChatOpenedForm) {
+          aiChatOpenedForm = true;
+          aiRenderQuickQuestionsForm_();
+          aiAppendMessageForm_("bot", "أهلًا! أنا مساعد التسجيل 👋 اسألني عن أي حاجة تخص استمارة التسجيل دي.");
+        }
+      });
+      document.getElementById("aiChatClose").addEventListener("click", () => {
+        document.getElementById("aiChatPanel").classList.remove("open");
+      });
+      document.getElementById("aiChatSend").addEventListener("click", () => aiSendMessageForm_());
+      document.getElementById("aiChatInput").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") aiSendMessageForm_();
+      });
+    }
+
+    // ==================== Init ====================
+    applyLang(currentLang);
+    loadDraftIfAny();
+    computeProgress();
+    showStep(currentStep);
+    loadRegistrationConfig();
+    initAiChatForm_();
+    // Note: flushing any offline-queued submission from a previous session is
+    // handled by the "load" event listener registered above, so it only runs once.
+  </script>
+</body>
+
+</html>
