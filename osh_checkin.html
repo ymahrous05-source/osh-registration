@@ -406,22 +406,37 @@
     // holding their QR steady in frame shouldn't spam ten submissions.
     const RESCAN_COOLDOWN_MS = 4000;
 
+    // jsQR itself, and getImageData on some devices, can throw on an odd
+    // frame (e.g. camera resizing mid-frame, or jsQR's own known edge-case
+    // throws on certain pixel patterns). Without a try/catch here, ONE bad
+    // frame throws out of scanLoop_ *before* it reaches the
+    // requestAnimationFrame(scanLoop_) call at the bottom — so the loop
+    // never reschedules itself. The video keeps playing (camera looks
+    // "on"), but nothing is ever decoded again. That's the "مش بيلقط"
+    // symptom. Catching here guarantees the loop always reschedules.
     function scanLoop_() {
       if (!scanning) return;
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const qr = jsQR(imageData.data, imageData.width, imageData.height);
-        if (qr && qr.data) {
-          const now = Date.now();
-          if (qr.data !== lastCode || now - lastCodeAt > RESCAN_COOLDOWN_MS) {
-            lastCode = qr.data;
-            lastCodeAt = now;
-            handleCode_(qr.data);
+      try {
+        if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const qr = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: "attemptBoth",
+          });
+          if (qr && qr.data) {
+            const now = Date.now();
+            if (qr.data !== lastCode || now - lastCodeAt > RESCAN_COOLDOWN_MS) {
+              lastCode = qr.data;
+              lastCodeAt = now;
+              handleCode_(qr.data);
+            }
           }
         }
+      } catch (err) {
+        // Log it, but never let a single bad frame kill scanning permanently.
+        console.error("scanLoop_ frame error:", err);
       }
       rafId = requestAnimationFrame(scanLoop_);
     }
