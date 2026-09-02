@@ -115,6 +115,17 @@ const PERMISSION_KEYS = ["manageSettings", "manageFields", "manageCertificates",
 
 const SHEET_NAME = "Registrations"; // <-- change to match your actual tab name (used as the default/first cycle's sheet)
 
+// The Sheet this backend reads/writes. SpreadsheetApp.getActiveSpreadsheet()
+// only works when a script is BOUND to a Sheet and running from inside its
+// UI — it returns null for a deployed Web App (which is how this backend
+// actually runs), causing "Cannot read properties of null" errors. Using
+// openById() with an explicit ID works from any context, bound or not.
+// Get this ID from your Sheet's URL: .../spreadsheets/d/THIS_PART/edit
+const SHEET_ID = "1H3fl2szORZhW5JmT5R2OY-rX0RAxuysmmnBDhH85ZE0";
+function getSpreadsheet_() {
+  return SpreadsheetApp.openById(SHEET_ID);
+}
+
 // Column order written to the sheet. Keep this order in sync with HEADERS —
 // index i of HEADERS must correspond to index i of the row array built in
 // buildRow_(). The dashboard finds columns by header NAME (not position), so
@@ -894,7 +905,7 @@ function handleListCycles_(e) {
   }
   const formId = String(e.parameter.form || "").trim();
   const cfg = getRegConfig_(formId);
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet_();
 
   const claimedByOthers = new Set();
   listAllForms_(true).forEach(f => {
@@ -1561,7 +1572,7 @@ const ACTIVITY_LOG_MAX_ROWS = 500; // trims oldest entries past this so the shee
 
 function logActivity_(accountName, action, details) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet_();
     let log = ss.getSheetByName(ACTIVITY_LOG_SHEET_NAME);
     if (!log) {
       log = ss.insertSheet(ACTIVITY_LOG_SHEET_NAME);
@@ -1608,7 +1619,7 @@ function describeActionForLog_(payload) {
 
 // action=getActivityLog — returns the most recent N entries, newest first.
 function handleGetActivityLog_() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet_();
   const log = ss.getSheetByName(ACTIVITY_LOG_SHEET_NAME);
   if (!log || log.getLastRow() < 2) return jsonOutput_({ status: "success", entries: [] });
   const data = log.getRange(2, 1, log.getLastRow() - 1, 4).getValues();
@@ -1636,7 +1647,7 @@ function handleExportExcel_(payload) {
 
     formatSheetForExport_(sheet);
 
-    const ssId = SpreadsheetApp.getActiveSpreadsheet().getId();
+    const ssId = getSpreadsheet_().getId();
     const gid = sheet.getSheetId();
     const url = `https://docs.google.com/spreadsheets/d/${ssId}/export?format=xlsx&gid=${gid}`;
     const token = ScriptApp.getOAuthToken();
@@ -1924,7 +1935,7 @@ function handleSaveConfig_(payload) {
 // scoped to the given formId (see propKey_ above).
 function startNewCycle_(base, formId) {
   const props = PropertiesService.getScriptProperties();
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet_();
   const k = (b) => propKey_(b, formId);
 
   let cycle = Number(props.getProperty(k("CYCLE_NUMBER")) || "0") + 1;
@@ -2427,7 +2438,7 @@ function getActiveSheetName_(formId) {
 // Looks up a sheet WITHOUT creating it. Used anywhere we must never silently
 // spawn a new empty tab just because someone passed an unexpected name.
 function findSheet_(name) {
-  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+  return getSpreadsheet_().getSheetByName(name);
 }
 
 // Gets (and creates, if missing) the CURRENT active sheet for the given form
@@ -2437,7 +2448,7 @@ function findSheet_(name) {
 // the new Settings tab keep behaving exactly like before.
 function getSheet_(formId, nameOpt) {
   const name = nameOpt || getActiveSheetName_(formId);
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet_();
   let sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
@@ -2554,7 +2565,7 @@ function rowToMember_(headers, row) {
 // to only that form's own sheets/cycles (matched the same way
 // handleListCycles_ matches them — by sheetBaseName).
 function findMemberRowInAllCycles_(code, formId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet_();
   const cfg = getRegConfig_(formId || "");
   const activeName = cfg.activeSheetName;
 
@@ -2677,7 +2688,7 @@ function handleCheckin_(payload) {
 // re-registering a SECOND time within the same form's CURRENT active
 // sheet; this function is what makes an ID persistent ACROSS forms.)
 function findExistingMembershipNo_(nationalId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet_();
   const sheets = ss.getSheets().filter(sh => sh.getName() !== ACTIVITY_LOG_SHEET_NAME);
 
   for (const sh of sheets) {
@@ -2707,7 +2718,7 @@ function generateMembershipNumber_(prefix) {
   lock.waitLock(30000);
   try {
     const used = new Set();
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getSpreadsheet_();
     const numRe = new RegExp("^" + usePrefix + "-(\\d+)$");
 
     ss.getSheets().forEach(sh => {
