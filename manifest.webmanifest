@@ -1,0 +1,17 @@
+{
+  "name": "أسرة صناع الحياة بالجامعات المصرية - استمارة التسجيل",
+  "short_name": "أسرة صناع الحياة",
+  "description": "استمارة تسجيل بيانات المسجلين في أسرة صناع الحياة بالجامعات المصرية",
+  "start_url": "./osh_form.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#08283f",
+  "theme_color": "#08283f",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
