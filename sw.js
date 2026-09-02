@@ -14,7 +14,7 @@
 
 const CACHE_NAME = "osh-form-shell-v1";
 const APP_SHELL = [
-  "./dys_form.html",
+  "./osh_form.html",
   "./manifest.webmanifest",
   "./icon.svg",
 ];
@@ -49,7 +49,7 @@ self.addEventListener("fetch", (event) => {
   // cached copy. Only fall back to the cached copy if the network request
   // fails entirely (actually offline), so the offline-opening behavior is
   // preserved. The fresh response also re-populates the cache for next time.
-  const isHtmlRequest = req.mode === "navigate" || req.url.endsWith("dys_form.html") || req.url.endsWith("/");
+  const isHtmlRequest = req.mode === "navigate" || req.url.endsWith("osh_form.html") || req.url.endsWith("/");
   if (isHtmlRequest) {
     event.respondWith(
       fetch(req)
