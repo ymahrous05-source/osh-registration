@@ -431,6 +431,34 @@
       passwordInput.focus();
     });
 
+    // ==================== Camera pre-warm ====================
+    // أكبر مصدر للتأخير مش سرعة الكاميرا نفسها — إنها كانت بتتطلب بعد ما
+    // اليوزر يدخل باسورد (يعني بعد ما طلب الشبكة بتاع تسجيل الدخول يخلص
+    // كمان). بنطلب إذن الكاميرا من أول ما الصفحة تفتح، عشان الجهاز ياخد
+    // وقته وهو لسه بيكتب الباسورد، فيوصل شاشة السكان والكاميرا جاهزة
+    // فورًا أو شبه فورًا.
+    let cameraStreamPromise = null;
+    function preloadCamera_() {
+      if (cameraStreamPromise) return cameraStreamPromise;
+      if (typeof jsQR === "undefined") return null;
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return null;
+      cameraStreamPromise = navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" },
+          // قللنا الدقة المطلوبة من 1280x720 لـ 960x540 — التفاوض على
+          // دقة أعلى مع هاردوير الكاميرا هو غالبًا سبب البطء، والدقة دي
+          // لسه كفاية لقراءة QR من مسافة عادية.
+          width: { ideal: 960 },
+          height: { ideal: 540 },
+        },
+      });
+      // لو الطلب فشل (رفض إذن مثلاً)، منسيبش الوعد الفاشل متسجّل —
+      // startCamera_ هتحاول تاني وتظهر رسالة الخطأ الصح وقتها.
+      cameraStreamPromise.catch(() => { cameraStreamPromise = null; });
+      return cameraStreamPromise;
+    }
+    preloadCamera_();
+
     // ==================== Camera + QR decode loop ====================
     function startCamera_() {
       if (typeof jsQR === "undefined") {
@@ -446,13 +474,17 @@
       camOff.style.display = "flex";
       camOff.textContent = "بيتم تشغيل الكاميرا...";
 
-      navigator.mediaDevices.getUserMedia({
+      // بنستخدم الستريم اللي اتجهّز مقدمًا لو موجود؛ لو مش موجود (فشل
+      // preload لأي سبب)، بنطلبه دلوقتي كـ fallback زي الأول بالظبط.
+      const streamPromise = preloadCamera_() || navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: "environment" },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: 960 },
+          height: { ideal: 540 },
         },
-      })
+      });
+
+      streamPromise
         .then(stream => {
           video.srcObject = stream;
           video.play();
@@ -497,6 +529,11 @@
       const stream = video.srcObject;
       if (stream) stream.getTracks().forEach(t => t.stop());
       video.srcObject = null;
+      // الستريم اللي كان متجهّز مقدمًا بقى متوقف دلوقتي (تراكاته اتقفلت) —
+      // لازم نمسحه ونجهّز واحد جديد عشان يكون جاهز لو اليوزر سجّل دخول
+      // تاني بعد الخروج.
+      cameraStreamPromise = null;
+      preloadCamera_();
     }
 
     // Ignore re-scanning the exact same code within a few seconds — someone
