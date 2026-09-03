@@ -987,6 +987,18 @@
       filter: brightness(1.05);
     }
 
+    /* Plain sentence in "خيارات بعد التسجيل" — no button, no link, just text. */
+    .sa-text-note {
+      margin: 4px 0;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, .06);
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.6;
+      text-align: center;
+      color: inherit;
+    }
+
     /* Post-registration action buttons (server-configured from the dashboard's
        "🎉 خيارات بعد التسجيل" card — see DYS_SUCCESS_ACTIONS/renderSuccessActionButtons_
        below). .btn-whatsapp above stays the default/fallback look; these
@@ -1349,7 +1361,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 2l7 3v6c0 5-3.4 8.4-7 11-3.6-2.6-7-6-7-11V5l7-3z" />
         </svg>
-        <span data-i18n="trustNote">بياناتك بتتبعت مباشرة للجنة ومحدش تاني بيشوفها</span>
+        <span data-i18n="trustNote">أهلًا بيك في أسرة صناع الحياة، يسعدنا انضمامك لينا 🌱</span>
       </div>
       <div class="lang-toggle" role="group" aria-label="Language">
         <button type="button" id="langAr" class="active" data-lang="ar">AR</button>
@@ -1678,8 +1690,8 @@
     // Fill these in from your Cloudinary dashboard — see the "Cloudinary"
     // section in BACKEND_SETUP_STEPS.md. Leave CLOUD_NAME empty to disable
     // video upload entirely (the field just won't work if enabled without it).
-    const CLOUDINARY_CLOUD_NAME = "";       // e.g. "dxxxxxxx" — Dashboard ▸ top-left, under your account name
-    const CLOUDINARY_UPLOAD_PRESET = "";    // e.g. "dys_unsigned" — Settings ▸ Upload ▸ Upload presets ▸ Add (Signing Mode: Unsigned)
+    const CLOUDINARY_CLOUD_NAME = "u79aqzi1";       // e.g. "dxxxxxxx" — Dashboard ▸ top-left, under your account name
+    const CLOUDINARY_UPLOAD_PRESET = "OSH Dashboard";    // e.g. "dys_unsigned" — Settings ▸ Upload ▸ Upload presets ▸ Add (Signing Mode: Unsigned)
     const CLOUDINARY_MAX_VIDEO_MB = 100;    // client-side size guard, adjust to taste
 
     // Fallback ONLY: used if the backend has no "خيارات بعد التسجيل" configured
@@ -1706,7 +1718,7 @@
     // ==================== i18n ====================
     const I18N = {
       ar: {
-        trustNote: "بياناتك بتتبعت مباشرة للجنة ومحدش تاني بيشوفها",
+        trustNote: "أهلًا بيك في أسرة صناع الحياة، يسعدنا انضمامك لينا 🌱",
         pageTitle: "استمارة تسجيل البيانات",
         pctComplete: "مكتمل",
         autosaved: "محفوظ تلقائيًا",
@@ -1758,7 +1770,7 @@
         closedCountdownPrefix: "هيفتح بعد:",
       },
       en: {
-        trustNote: "Your data goes straight to the committee — no one else sees it",
+        trustNote: "Welcome to Osar Sonaa Al-Hayah — we're excited to have you join us 🌱",
         pageTitle: "Registration Form",
         pctComplete: "complete",
         autosaved: "Saved automatically",
@@ -2791,7 +2803,15 @@
         : DYS_WHATSAPP_NUMBERS_FALLBACK.map(entry => ({ type: "whatsapp_chat", label: entry.label, value: entry.number, enabled: true }));
 
       actions.forEach(entry => {
-        if (!entry || !entry.value) return;
+        if (!entry || !entry.label) return;
+        if (entry.type === "text") {
+          const p = document.createElement("p");
+          p.className = "sa-text-note";
+          p.textContent = entry.label;
+          waContainer.appendChild(p);
+          return;
+        }
+        if (!entry.value) return;
         const a = document.createElement("a");
         a.target = "_blank";
         a.rel = "noopener";
@@ -2816,6 +2836,10 @@
           case "instagram":
             a.href = entry.value;
             a.className = "btn-whatsapp sa-instagram";
+            break;
+          case "email":
+            a.href = `mailto:${entry.value}`;
+            a.className = "btn-whatsapp sa-link";
             break;
           default: // "link" and anything unrecognized
             a.href = entry.value;
