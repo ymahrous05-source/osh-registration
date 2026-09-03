@@ -308,6 +308,64 @@
     let lastCodeAt = 0;
     let canvas, ctx, rafId;
 
+    // ==================== Audio + haptic feedback ====================
+    // في يوم زحمة، اللي بيسكان مش هيقدر يبص في الشاشة كل ثانية — فبنفرّق
+    // بالصوت بس. AudioContext واحد بيتعمل مرة، ومتصفحات الموبايل بتمنع
+    // تشغيل صوت قبل أول لمسة/كليك على الصفحة، فبنفتحه عند أول تفاعل.
+    let audioCtx = null;
+    function getAudioCtx_() {
+      if (!audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) audioCtx = new AC();
+      }
+      if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+      return audioCtx;
+    }
+    ["click", "touchstart"].forEach(evt => {
+      document.addEventListener(evt, () => { getAudioCtx_(); }, { once: true, passive: true });
+    });
+
+    function beep_(freq, durationMs, type, delayMs, volume) {
+      const ctx2 = getAudioCtx_();
+      if (!ctx2) return;
+      const startAt = ctx2.currentTime + (delayMs || 0) / 1000;
+      const osc = ctx2.createOscillator();
+      const gain = ctx2.createGain();
+      osc.type = type || "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, startAt);
+      gain.gain.linearRampToValueAtTime(volume || 0.25, startAt + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, startAt + durationMs / 1000);
+      osc.connect(gain);
+      gain.connect(ctx2.destination);
+      osc.start(startAt);
+      osc.stop(startAt + durationMs / 1000 + 0.02);
+    }
+
+    // نغمة مختلفة لكل نتيجة عشان تتفرق من غير ما تبص للشاشة:
+    //  - ok (حضور جديد):        بيبتين صاعدين واضحين + اهتزازة قصيرة
+    //  - already (مسجّل قبل كده): نغمة واحدة متوسطة (تنبيه مش خطأ)
+    //  - bad (كود غلط/مشكلة):    بزّة منخفضة خشنة + اهتزاز متقطع طويل
+    //  - info (تحقق بس/تحميل):   من غير صوت عشان منزعجش المستخدم كل شوية
+    function playFeedback_(cls) {
+      try {
+        if (cls === "ok") {
+          beep_(880, 90, "sine", 0, 0.28);
+          beep_(1320, 120, "sine", 110, 0.28);
+          if (navigator.vibrate) navigator.vibrate(80);
+        } else if (cls === "already") {
+          beep_(600, 170, "sine", 0, 0.24);
+          if (navigator.vibrate) navigator.vibrate([60, 60, 60]);
+        } else if (cls === "bad") {
+          beep_(190, 220, "square", 0, 0.2);
+          beep_(190, 220, "square", 260, 0.2);
+          if (navigator.vibrate) navigator.vibrate([150, 80, 150]);
+        }
+      } catch (e) {
+        // الصوت/الاهتزاز مش أساسي لعمل الصفحة — أي خطأ هنا يتجاهل.
+      }
+    }
+
     function showResult(cls, icon, name, meta, status) {
       result.className = cls;
       result.style.display = "block";
@@ -315,6 +373,7 @@
       resultName.textContent = name;
       resultMeta.textContent = meta;
       resultStatus.textContent = status;
+      playFeedback_(cls);
     }
 
     function fmtTime(iso) {
