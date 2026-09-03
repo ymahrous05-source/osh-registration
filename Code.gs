@@ -508,9 +508,13 @@ const CUSTOM_FIELD_TYPES = ["text", "textarea", "number", "date", "select", "che
 //   telegram       — Telegram group/channel link (t.me/...).
 //   facebook       — Facebook page/group link.
 //   instagram      — Instagram profile link.
+//   email          — mailto: link (frontend prefixes "mailto:" automatically
+//                     — store just the bare address here).
+//   text           — a plain sentence, no link/button at all (value is
+//                     empty/unused; only `label` is shown, as static text).
 //   link           — any other custom link/button (Drive folder, survey,
 //                     another website, ...).
-const SUCCESS_ACTION_TYPES = ["whatsapp_chat", "whatsapp_group", "telegram", "facebook", "instagram", "link"];
+const SUCCESS_ACTION_TYPES = ["whatsapp_chat", "whatsapp_group", "telegram", "facebook", "instagram", "email", "text", "link"];
 
 function getSuccessActions_(formId) {
   const raw = PropertiesService.getScriptProperties().getProperty(propKey_("SUCCESS_ACTIONS", formId));
@@ -533,9 +537,12 @@ function saveSuccessActions_(actions, formId) {
 // after a small edit doesn't reshuffle anything.
 function sanitizeSuccessAction_(a) {
   const label = String((a && a.label) || "").trim();
-  const value = String((a && a.value) || "").trim();
-  if (!label || !value) return null;
   const type = SUCCESS_ACTION_TYPES.indexOf(a && a.type) > -1 ? a.type : "link";
+  const value = String((a && a.value) || "").trim();
+  // "text" is a plain sentence with no link/button — value is optional.
+  // Every other type needs both a label and a value to be worth keeping.
+  if (!label) return null;
+  if (type !== "text" && !value) return null;
   const id = (a && a.id && /^sa_[a-z0-9]+$/.test(a.id)) ? a.id : "sa_" + Utilities.getUuid().replace(/-/g, "").slice(0, 8);
   return {
     id,
