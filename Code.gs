@@ -162,7 +162,7 @@ const EXTRA_FIELDS = {
   address:        { section: "personal", label: "العنوان بالتفصيل", type: "text", defaultRequired: false },
   birthDate:      { section: "personal", label: "تاريخ الميلاد", type: "date", defaultRequired: false },
   maritalStatus:  { section: "personal", label: "الحالة الاجتماعية", type: "select", options: ["أعزب", "متزوج", "مطلق", "أرمل"], defaultRequired: false },
-  governorate:    { section: "personal", label: "المحافظة", type: "text", defaultRequired: false },
+  governorate:    { section: "personal", label: "المحافظة", type: "select", options: ["القاهرة", "الجيزة", "القليوبية", "الإسكندرية", "البحيرة", "مطروح", "كفر الشيخ", "الدقهلية", "دمياط", "الشرقية", "الغربية", "المنوفية", "بورسعيد", "الإسماعيلية", "السويس", "شمال سيناء", "جنوب سيناء", "بني سويف", "الفيوم", "المنيا", "أسيوط", "سوهاج", "قنا", "الأقصر", "أسوان", "البحر الأحمر", "الوادي الجديد"], defaultRequired: false },
   academicYear:   { section: "education", label: "الفرقة الدراسية", type: "text", defaultRequired: false },
   gradeLevel:     { section: "education", label: "التقدير الدراسي", type: "text", defaultRequired: false },
   facebook:       { section: "contact", label: "رابط الفيسبوك", type: "text", defaultRequired: false },
