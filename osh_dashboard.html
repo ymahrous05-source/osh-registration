@@ -1525,6 +1525,8 @@
             <div class="settings-field">
               <label for="cfgSheetBaseName">اسم الشيت الأساسي</label>
               <input type="text" id="cfgSheetBaseName" placeholder="مثال: Registrations">
+              <p class="hint">💾 كل بياناتك متخزنة في الشيت ده بس (مفيش نسخة تانية تلقائية). يفضّل كل شوية تعمل
+                File ▸ Make a copy أو تنزّله Excel كنسخة احتياطية، خصوصًا قبل أي تعديل كبير.</p>
             </div>
             <div class="settings-field">
               <label for="cfgMembershipPrefix">بادئة رقم العضوية (حروف/أرقام إنجليزي، من 2 لـ 8)</label>
@@ -1541,6 +1543,12 @@
                 <label for="cfgEndAt">نهاية التسجيل (سيب فاضي = بدون حد)</label>
                 <input type="datetime-local" id="cfgEndAt">
               </div>
+            </div>
+            <div class="settings-field">
+              <label for="cfgMaxRegistrations">الحد الأقصى لعدد المسجلين (سيب فاضي أو 0 = بدون حد)</label>
+              <input type="number" id="cfgMaxRegistrations" min="0" step="1" placeholder="مثال: 200">
+              <p class="hint">لما عدد المسجلين يوصل للرقم ده، الفورم بيقفل تلقائي ويظهر للزوار الجداد رسالة "اكتمل العدد" —
+                من غير ما تحتاج تتابع بنفسك أو تقفله يدويًا.</p>
             </div>
             <div class="settings-field">
               <label for="cfgConfirmEmailSubject">عنوان إيميل التأكيد (سيب فاضي = النص الافتراضي)</label>
@@ -2484,6 +2492,32 @@
         content.appendChild(sendBtn);
       }
 
+      if (currentPermissions.manageCertificates) {
+        const resendBtn = document.createElement("button");
+        resendBtn.type = "button";
+        resendBtn.className = "modal-close";
+        resendBtn.style.marginTop = "10px";
+        resendBtn.textContent = "🔁 إعادة إرسال إيميل التأكيد (والـ QR)";
+        resendBtn.disabled = !email;
+        if (!email) resendBtn.title = "السجل ده مفيهوش إيميل";
+        resendBtn.addEventListener("click", () => {
+          resendBtn.disabled = true;
+          resendBtn.textContent = "جاري الإرسال...";
+          postAdmin({ action: "resendConfirmationEmail", nationalId: nid, sheet: currentSheetName || activeSheetNameFromServer })
+            .then(res => {
+              if (res.status !== "success") throw new Error(res.message || "error");
+              toast("اتبعت إيميل التأكيد تاني ✓");
+              resendBtn.textContent = "✓ اترسل";
+            })
+            .catch(err => {
+              toast("فشل الإرسال: " + err.message);
+              resendBtn.textContent = "🔁 إعادة إرسال إيميل التأكيد (والـ QR)";
+              resendBtn.disabled = !email;
+            });
+        });
+        content.appendChild(resendBtn);
+      }
+
       rowModalOverlay.classList.add("show");
     }
     document.getElementById("rowModalClose").addEventListener("click", () => rowModalOverlay.classList.remove("show"));
@@ -2577,6 +2611,7 @@
           document.getElementById("cfgMembershipPrefix").value = cfg.membershipPrefix || "";
           document.getElementById("cfgStartAt").value = isoToLocalInputValue(cfg.startAt);
           document.getElementById("cfgEndAt").value = isoToLocalInputValue(cfg.endAt);
+          document.getElementById("cfgMaxRegistrations").value = cfg.maxRegistrations ? String(cfg.maxRegistrations) : "";
           document.getElementById("cfgConfirmEmailSubject").value = cfg.confirmEmailSubject || "";
           document.getElementById("cfgConfirmEmailBody").value = cfg.confirmEmailBody || "";
           const preview = document.getElementById("logoPreview");
@@ -3231,6 +3266,7 @@
         membershipPrefix: document.getElementById("cfgMembershipPrefix").value.trim(),
         startAt: startVal ? new Date(startVal).toISOString() : "",
         endAt: endVal ? new Date(endVal).toISOString() : "",
+        maxRegistrations: Math.max(0, Number(document.getElementById("cfgMaxRegistrations").value) || 0),
         confirmEmailSubject: document.getElementById("cfgConfirmEmailSubject").value.trim(),
         confirmEmailBody: document.getElementById("cfgConfirmEmailBody").value.trim(),
         sendCertAuto: document.getElementById("cfgSendCertAuto").checked,
