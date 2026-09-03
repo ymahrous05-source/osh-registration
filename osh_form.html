@@ -1765,6 +1765,8 @@
         closedBodyBefore: "الاستمارة هتفتح قريب، تابعنا عشان تعرف بالظبط إمتى.",
         closedTitleClosed: "التسجيل قفل دلوقتي",
         closedBodyClosed: "شكرًا لاهتمامك، الفترة المتاحة للتسجيل خلصت. تابعنا عشان تعرف ميعاد الدورة الجايه.",
+        closedTitleFull: "اكتمل العدد 🎉",
+        closedBodyFull: "شكرًا لاهتمامك، وصلنا للعدد الأقصى المسموح بيه للتسجيل. تابعنا عشان تعرف لو فتحنا أماكن جديدة أو دورة تانية.",
         closedStartLabel: "بداية التسجيل",
         closedEndLabel: "نهاية التسجيل",
         closedCountdownPrefix: "هيفتح بعد:",
@@ -1817,6 +1819,8 @@
         closedBodyBefore: "The form will open soon, stay tuned for the exact date.",
         closedTitleClosed: "Registration is closed",
         closedBodyClosed: "Thanks for your interest — the registration period has ended. Stay tuned for the next round.",
+        closedTitleFull: "We're full! 🎉",
+        closedBodyFull: "Thanks for your interest — we've reached the maximum number of registrations. Stay tuned in case we open more spots or a new round.",
         closedStartLabel: "Registration opens",
         closedEndLabel: "Registration closes",
         closedCountdownPrefix: "Opens in:",
@@ -1855,7 +1859,7 @@
     // title, a custom logo image, and an open/close window from the dashboard
     // without ever touching this file.
     let regConfig = null;
-    let regPhase = "open"; // "before" | "open" | "closed"
+    let regPhase = "open"; // "before" | "open" | "closed" | "full"
     let countdownTimer = null;
 
     function formatDateLabel_(iso) {
@@ -1869,20 +1873,26 @@
 
     function renderClosedState() {
       if (regPhase === "open" || !regConfig) return;
-      document.getElementById("closedTitle").textContent = regPhase === "before" ? t("closedTitleBefore") : t("closedTitleClosed");
-      document.getElementById("closedBody").textContent = regPhase === "before" ? t("closedBodyBefore") : t("closedBodyClosed");
+      const titleKey = regPhase === "before" ? "closedTitleBefore" : regPhase === "full" ? "closedTitleFull" : "closedTitleClosed";
+      const bodyKey = regPhase === "before" ? "closedBodyBefore" : regPhase === "full" ? "closedBodyFull" : "closedBodyClosed";
+      document.getElementById("closedTitle").textContent = t(titleKey);
+      document.getElementById("closedBody").textContent = t(bodyKey);
 
       const datesBox = document.getElementById("closedDates");
       datesBox.innerHTML = "";
-      if (regConfig.startAt) {
-        const row = document.createElement("div");
-        row.innerHTML = `<b>${t("closedStartLabel")}:</b> ${formatDateLabel_(regConfig.startAt)}`;
-        datesBox.appendChild(row);
-      }
-      if (regConfig.endAt) {
-        const row = document.createElement("div");
-        row.innerHTML = `<b>${t("closedEndLabel")}:</b> ${formatDateLabel_(regConfig.endAt)}`;
-        datesBox.appendChild(row);
+      // "full" is about capacity, not dates — showing start/end here would
+      // be confusing (the window might still be technically open).
+      if (regPhase !== "full") {
+        if (regConfig.startAt) {
+          const row = document.createElement("div");
+          row.innerHTML = `<b>${t("closedStartLabel")}:</b> ${formatDateLabel_(regConfig.startAt)}`;
+          datesBox.appendChild(row);
+        }
+        if (regConfig.endAt) {
+          const row = document.createElement("div");
+          row.innerHTML = `<b>${t("closedEndLabel")}:</b> ${formatDateLabel_(regConfig.endAt)}`;
+          datesBox.appendChild(row);
+        }
       }
 
       const countdownEl = document.getElementById("closedCountdown");
@@ -2838,7 +2848,7 @@
             a.className = "btn-whatsapp sa-instagram";
             break;
           case "email":
-            a.href = `mailto:${entry.value}`;
+            a.href = `mailto:${entry.value}?subject=${encodeURIComponent("استفسار بخصوص التسجيل — " + name)}&body=${encodeURIComponent(`السلام عليكم، أنا ${name}، رقم عضويتي ${memberNo}.\n\n`)}`;
             a.className = "btn-whatsapp sa-link";
             break;
           default: // "link" and anything unrecognized
@@ -2997,12 +3007,12 @@
             submitError.classList.add("visible");
             confirmBtn.disabled = false;
             confirmBtn.textContent = t("btnSubmit");
-          } else if (res.status === "not_started" || res.status === "closed") {
-            // The registration window changed while this person was filling the
-            // form (e.g. it just closed) — show the same closed/not-open screen
-            // instead of a confusing generic error.
+          } else if (res.status === "not_started" || res.status === "closed" || res.status === "full") {
+            // The registration window (or capacity) changed while this person was
+            // filling the form — show the same closed/full screen instead of a
+            // confusing generic error.
             regConfig = { startAt: res.startAt || "", endAt: res.endAt || "" };
-            regPhase = res.status === "not_started" ? "before" : "closed";
+            regPhase = res.status === "not_started" ? "before" : res.status === "full" ? "full" : "closed";
             showClosedScreen();
           } else {
             throw new Error(res.message || "unexpected error");
