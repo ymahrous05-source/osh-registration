@@ -548,6 +548,16 @@
     // never reschedules itself. The video keeps playing (camera looks
     // "on"), but nothing is ever decoded again. That's the "مش بيلقط"
     // symptom. Catching here guarantees the loop always reschedules.
+    // نغمة قصيرة ومحايدة بس بمجرد ما الكاميرا "تلقط" كود — قبل ما نستنى
+    // رد السيرفر خالص. كده اللي بيسكان يعرف إن الكاميرا مسكت الكود فورًا،
+    // وبعدين البيب الصح/الغلط بيجيله لما نتيجة التحقق ترجع.
+    function playScanTick_() {
+      try {
+        beep_(1000, 40, "sine", 0, 0.18);
+        if (navigator.vibrate) navigator.vibrate(20);
+      } catch (e) {}
+    }
+
     function scanLoop_() {
       if (!scanning) return;
       try {
@@ -564,6 +574,7 @@
             if (qr.data !== lastCode || now - lastCodeAt > RESCAN_COOLDOWN_MS) {
               lastCode = qr.data;
               lastCodeAt = now;
+              playScanTick_();
               handleCode_(qr.data);
             }
           }
