@@ -1661,9 +1661,11 @@
                   <option value="telegram">تليجرام</option>
                   <option value="facebook">فيسبوك</option>
                   <option value="instagram">إنستجرام</option>
+                  <option value="email">إيميل — تواصل عن طريق الإيميل</option>
+                  <option value="text">جملة عادية (نص بس، من غير زرار)</option>
                   <option value="link">لينك عام (أي حاجة تانية)</option>
                 </select>
-                <input type="text" id="newSuccessActionLabel" placeholder="النص على الزرار (مثلاً: تواصل مع تيم الـ HR)">
+                <input type="text" id="newSuccessActionLabel" placeholder="النص (زرار: النص عليه — جملة عادية: النص نفسه)">
               </div>
               <input type="text" id="newSuccessActionValue" style="margin-top:8px;"
                 placeholder="رقم واتساب بالصيغة الدولية بدون + أو 00 (مثلاً 201xxxxxxxxx)">
@@ -2817,7 +2819,7 @@
     let latestSuccessActions = [];
     const SUCCESS_ACTION_TYPE_LABELS = {
       whatsapp_chat: "واتساب (تواصل مباشر)", whatsapp_group: "واتساب (جروب)",
-      telegram: "تليجرام", facebook: "فيسبوك", instagram: "إنستجرام", link: "لينك عام",
+      telegram: "تليجرام", facebook: "فيسبوك", instagram: "إنستجرام", email: "إيميل", link: "لينك عام", text: "جملة نصية",
     };
     const SUCCESS_ACTION_VALUE_HINTS = {
       whatsapp_chat: { placeholder: "رقم واتساب بالصيغة الدولية بدون + أو 00 (مثلاً 201xxxxxxxxx)", hint: `لنوع "واتساب — تواصل مباشر" حط رقم الواتساب بس (بدون + أو 00 وبدون مسافات)، مثلاً <code>201234567890</code> — هيتفتح تلقائي برسالة فيها اسم العضو ورقم عضويته.` },
@@ -2825,7 +2827,9 @@
       telegram: { placeholder: "لينك التليجرام (t.me/...)", hint: "الصق لينك القروب/القناة على تليجرام." },
       facebook: { placeholder: "لينك صفحة/جروب الفيسبوك", hint: "الصق لينك الصفحة أو الجروب على فيسبوك." },
       instagram: { placeholder: "لينك حساب الإنستجرام", hint: "الصق لينك البروفايل على إنستجرام." },
+      email: { placeholder: "الإيميل بس (من غير mailto:)، مثلاً info@osar-hayah.org", hint: "اكتب عنوان الإيميل بس — لما العضو يدوس الزرار هيتفتحله برنامج الإيميل بتاعه موجّه عليك تلقائي." },
       link: { placeholder: "أي لينك (https://...)", hint: "أي لينك تاني عايز تظهره كزرار — درايف، فورم، موقع، إلخ." },
+      text: { placeholder: "(مش محتاج تكتب حاجة هنا — سيبها فاضية)", hint: `اكتب الجملة اللي عايز تظهرها في خانة "النص" فوق (مثلاً: "شكرًا لتسجيلك، هيتم التواصل معاك خلال 3 أيام عمل") — دي هتظهر كنص عادي تحت الأزرار، من غير أي رابط أو زرار.` },
     };
 
     const CUSTOM_TYPE_LABELS = { text: "نص قصير", textarea: "نص طويل", number: "رقم", date: "تاريخ", select: "قائمة اختيار", checkbox: "نعم / لا" };
@@ -3018,7 +3022,7 @@
           value: tr.querySelector(".sa-value").value.trim(),
           enabled: tr.querySelector(".sa-enabled").checked,
         });
-      }).filter(a => a && a.label && a.value);
+      }).filter(a => a && a.label && (a.value || a.type === "text"));
     }
 
     document.getElementById("newSuccessActionType").addEventListener("change", (e) => {
@@ -3031,12 +3035,12 @@
       const type = document.getElementById("newSuccessActionType").value;
       const label = document.getElementById("newSuccessActionLabel").value.trim();
       const value = document.getElementById("newSuccessActionValue").value.trim();
-      if (!label || !value) { setNote("successActionsNote", "لازم تكتب النص والرقم/اللينك الأول.", "err"); return; }
+      if (!label || (!value && type !== "text")) { setNote("successActionsNote", "لازم تكتب النص الأول (وكمان الرقم/اللينك، لو النوع مش جملة عادية).", "err"); return; }
       latestSuccessActions.push({ id: "_tmp_" + Date.now() + "_" + Math.random().toString(36).slice(2), type, label, value, enabled: true });
       renderSuccessActionsTable(latestSuccessActions);
       document.getElementById("newSuccessActionLabel").value = "";
       document.getElementById("newSuccessActionValue").value = "";
-      setNote("successActionsNote", `زرار "${label}" اتضاف — دوس "حفظ خيارات بعد التسجيل" تحت عشان يتأكد.`, "ok");
+      setNote("successActionsNote", `"${label}" اتضاف — دوس "حفظ خيارات بعد التسجيل" تحت عشان يتأكد.`, "ok");
     });
 
     document.getElementById("saveSuccessActionsBtn").addEventListener("click", () => {
