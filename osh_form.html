@@ -1007,6 +1007,20 @@
       background: var(--dys-navy);
     }
 
+    .btn-whatsapp.sa-email {
+      background: #4B5A72;
+    }
+
+    .sa-text {
+      display: block;
+      background: transparent;
+      color: var(--dys-text);
+      font-weight: 600;
+      font-size: 14px;
+      text-align: center;
+      padding: 6px 4px;
+    }
+
     .btn-print {
       background: #eef1ef;
       color: var(--dys-text);
@@ -1694,7 +1708,7 @@
 
     // Populated from ?action=publicConfig (see loadRegistrationConfig below).
     // Each entry: {id, type, label, value, enabled} — type is one of
-    // "whatsapp_chat" | "whatsapp_group" | "telegram" | "facebook" | "instagram" | "link".
+    // "whatsapp_chat" | "whatsapp_group" | "telegram" | "facebook" | "instagram" | "email" | "text" | "link".
     let DYS_SUCCESS_ACTIONS = null; // null = "not loaded yet / backend unreachable", not "empty on purpose"
 
     // Which form/tenant THIS page instance is — read from this page's own
@@ -2791,7 +2805,22 @@
         : DYS_WHATSAPP_NUMBERS_FALLBACK.map(entry => ({ type: "whatsapp_chat", label: entry.label, value: entry.number, enabled: true }));
 
       actions.forEach(entry => {
-        if (!entry || !entry.value) return;
+        if (!entry) return;
+
+        // "text" = plain sentence, no button/link at all (per the dashboard's
+        // "جملة عادية (نص بس، من غير زرار)" option) — it has no "value", only
+        // a label, so it must be handled before the generic value/href logic
+        // below (which would otherwise silently skip it for having no value).
+        if (entry.type === "text") {
+          if (!entry.label) return;
+          const p = document.createElement("p");
+          p.className = "sa-text";
+          p.textContent = entry.label;
+          waContainer.appendChild(p);
+          return;
+        }
+
+        if (!entry.value) return;
         const a = document.createElement("a");
         a.target = "_blank";
         a.rel = "noopener";
@@ -2816,6 +2845,10 @@
           case "instagram":
             a.href = entry.value;
             a.className = "btn-whatsapp sa-instagram";
+            break;
+          case "email":
+            a.href = `mailto:${entry.value}`;
+            a.className = "btn-whatsapp sa-email";
             break;
           default: // "link" and anything unrecognized
             a.href = entry.value;
