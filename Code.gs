@@ -153,7 +153,7 @@ const FIELD_SECTIONS = {
   personal: "بيانات شخصية إضافية",
   education: "بيانات تعليمية ووظيفية إضافية",
   contact: "بيانات تواصل إضافية",
-  entity: "بيانات داخل الكيان إضافية",
+  entity: "بيانات إضافية",
   other: "حقول تانية",
   custom: "حقول مخصصة",
 };
@@ -219,10 +219,17 @@ const MEMBERSHIP_PREFIX = "OSH";
 // settings card. Each of these can be shown/hidden on the form, and marked
 // required or optional, WITHOUT touching any code or the sheet's columns
 // (the column stays in HEADERS either way — it's just left blank when a
-// field is disabled or skipped). "Name" and "National ID" are intentionally
-// NOT in this list: the whole duplicate-check + membership system depends
-// on them, so they always stay shown and required.
+// field is disabled or skipped). "Name" is intentionally NOT in this list —
+// every downstream row/email/dashboard view assumes a registrant has a name,
+// so it always stays shown and required. National ID USED to be hardcoded
+// the same way, but it's now toggleable like everything else here — when
+// it's off/optional and a registrant has no ID, duplicate-detection
+// (isDuplicateNid_/findExistingMembershipNo_) and the admin "resend
+// email"/"send certificate" single-member lookups (handleSendCertificate_/
+// handleResendConfirmationEmail_) all specifically guard against ever
+// matching one blank ID to another — see the comments at each of those.
 const TOGGLEABLE_FIELDS = {
+  nationalId: { section: "personal", label: "الرقم القومي", defaultRequired: true },
   age:       { section: "personal", label: "العمر", defaultRequired: true },
   gender:    { section: "personal", label: "النوع", defaultRequired: true },
   phone:     { section: "contact", label: "رقم الهاتف", defaultRequired: true },
@@ -321,6 +328,7 @@ function doPost(e) {
       "saveConfig", "uploadLogo", "removeLogo",
       "uploadCertTemplate", "removeCertTemplate",
       "sendCertificate", "sendCertificatesBulk", "sendTestCertificate",
+      "resendConfirmationEmail",
       "saveFieldConfig",
       "listAdminAccounts", "addAdminAccount", "removeAdminAccount", "reviewAccess", "updateAccountPermissions",
       "exportExcel", "getActivityLog",
@@ -476,14 +484,39 @@ function handleSaveFieldConfig_(payload) {
 // ---------------------------------------------------------------------------
 
 function getCustomFields_(formId) {
+  let arr = [];
   const raw = PropertiesService.getScriptProperties().getProperty(propKey_("CUSTOM_FIELDS", formId));
-  if (!raw) return [];
-  try {
-    const arr = JSON.parse(raw);
-    return Array.isArray(arr) ? arr : [];
-  } catch (e) {
-    return [];
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) arr = parsed;
+    } catch (e) { arr = []; }
   }
+
+  // One-time seed — adds the "متطوع بالفعل / عضو جديد" question
+  // automatically the first time this runs after being deployed, so it
+  // shows up on the form without anyone having to add it by hand from
+  // "🧩 حقول الاستمارة". Guarded by its own marker property so it only ever
+  // runs ONCE per form: after that it's saved for real, exactly like any
+  // custom field the admin adds themselves — freely editable, reorderable,
+  // or deletable from the dashboard, and it will NOT come back once removed.
+  const props = PropertiesService.getScriptProperties();
+  const seedKey = propKey_("SEEDED_VOLUNTEER_FIELD_V1", formId);
+  if (!props.getProperty(seedKey)) {
+    arr = arr.concat([{
+      key: "c_isvolunteer",
+      label: "هل انت متطوع معانا بالفعل؟",
+      type: "select",
+      options: ["متطوع بالفعل", "عضو جديد"],
+      required: true,
+      enabled: true,
+      order: arr.length,
+    }]);
+    saveCustomFields_(arr, formId);
+    props.setProperty(seedKey, "1");
+  }
+
+  return arr;
 }
 
 function saveCustomFields_(fields, formId) {
@@ -847,6 +880,8 @@ function handlePublicConfig_(e) {
   return jsonOutput_({
     status: "success",
     formTitle: cfg.formTitle,
+    trustNote: cfg.trustNote,
+    formSubtitle: cfg.formSubtitle,
     logoUrl: cfg.logoUrl,
     startAt: cfg.startAt,
     endAt: cfg.endAt,
@@ -1141,7 +1176,7 @@ function handleSubmit_(payload) {
     return jsonOutput_({ status: "error", message: errors.join(" | ") });
   }
 
-  const nationalId = String(payload.nationalId).trim();
+  const nationalId = String(payload.nationalId || "").trim();
 
   // ---- 4) duplicate guard (uses a lock so two near-simultaneous submits
   //         of the same ID can't both slip through) ----
@@ -1166,10 +1201,15 @@ function handleSubmit_(payload) {
     pushToFirestore_(membershipNo, rowValues); // best-effort mirror — never blocks registration
 
     // ---- 6) confirmation email (best-effort — never fails the submission) ----
+    // Queued to go out a couple of seconds AFTER this response instead of
+    // sent right here — see queueConfirmationEmail_ for why (the QR image
+    // inside it comes from an external, occasionally slow free service, and
+    // there's no reason to make the member wait on the success screen for
+    // it when their own on-screen QR is already generated locally).
     let emailSent = false;
     const validEmail = payload.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email.trim());
     if (validEmail) {
-      emailSent = sendConfirmationEmail_(payload, membershipNo, cfg);
+      emailSent = queueConfirmationEmail_(payload, membershipNo, cfg);
     }
 
     // ---- 7) certificate email (best-effort, only if auto-send is turned on
@@ -1197,10 +1237,21 @@ function validatePayload_(p, formId) {
   const isOn = (key) => fc[key] ? fc[key].enabled : true;
   const isReq = (key) => fc[key] ? fc[key].required : true;
 
-  // Name + National ID are always required — the whole duplicate-check and
-  // membership system depends on them, so they're not part of TOGGLEABLE_FIELDS.
+  // Name is always required — everything downstream (rows, emails, the
+  // dashboard table) assumes a registrant has a name. National ID used to be
+  // hardcoded the same way, but it's now a normal toggleable field (see
+  // TOGGLEABLE_FIELDS) — when it's off/optional and left blank, duplicate
+  // detection and the admin "resend email"/"send certificate" lookups (which
+  // key off National ID) simply won't have anything to match on for that
+  // registrant, same as any other disabled field.
   if (str(p.name).length < 3) errors.push("name");
-  if (!isValidEgyptianNationalId_(str(p.nationalId))) errors.push("nationalId");
+
+  if (isOn("nationalId")) {
+    const v = str(p.nationalId);
+    if (isReq("nationalId") || v !== "") {
+      if (!isValidEgyptianNationalId_(v)) errors.push("nationalId");
+    }
+  }
 
   if (isOn("age")) {
     const v = str(p.age);
@@ -1505,6 +1556,11 @@ function getRegConfig_(formId) {
   return {
     formId: formId || "",
     formTitle: props.getProperty(k("FORM_TITLE")) || "",
+    // Custom "trust note" line under the logo — falls back to the form's own
+    // built-in default text (see osh_form.html) when never set.
+    trustNote: props.getProperty(k("TRUST_NOTE")) || "",
+    // Custom subtitle line right under the form's title — same fallback rule.
+    formSubtitle: props.getProperty(k("FORM_SUBTITLE")) || "",
     sheetBaseName: props.getProperty(k("SHEET_BASE_NAME")) || (formId ? formId : SHEET_NAME),
     startAt: props.getProperty(k("REG_START")) || "",
     endAt: props.getProperty(k("REG_END")) || "",
@@ -1610,6 +1666,7 @@ function describeActionForLog_(payload) {
     case "sendCertificate": return `بعت شهادة لسجل واحد (${payload.membershipNo || payload.rowIndex || ""})`;
     case "sendCertificatesBulk": return "بعت شهادات لدفعة من الأعضاء";
     case "sendTestCertificate": return `بعت شهادة تجريبية لـ ${payload.testEmail || ""}`;
+    case "resendConfirmationEmail": return `أعاد إرسال إيميل التأكيد (${payload.nationalId || ""})`;
     case "saveFieldConfig": return "عدّل إعدادات حقول الاستمارة";
     case "listAdminAccounts": return "شاف قائمة الحسابات";
     case "addAdminAccount": return `أضاف/عدّل حساب: ${payload.name || ""}`;
@@ -1698,6 +1755,7 @@ const ACTION_PERMISSIONS = {
   sendCertificate: "manageCertificates",
   sendCertificatesBulk: "manageCertificates",
   sendTestCertificate: "manageCertificates",
+  resendConfirmationEmail: "manageCertificates",
   saveFieldConfig: "manageFields",
   listAdminAccounts: "manageAccounts",
   addAdminAccount: "manageAccounts",
@@ -1727,6 +1785,7 @@ function handleAdminAction_(payload) {
   if (payload.action === "sendCertificate") return logAndReturn_(account, payload, handleSendCertificate_(payload));
   if (payload.action === "sendCertificatesBulk") return logAndReturn_(account, payload, handleSendCertificatesBulk_(payload));
   if (payload.action === "sendTestCertificate") return logAndReturn_(account, payload, handleSendTestCertificate_(payload));
+  if (payload.action === "resendConfirmationEmail") return logAndReturn_(account, payload, handleResendConfirmationEmail_(payload));
   if (payload.action === "saveFieldConfig") return logAndReturn_(account, payload, handleSaveFieldConfig_(payload));
   if (payload.action === "listAdminAccounts") return handleListAdminAccounts_(); // read-only, not logged — keeps the log focused on actual changes
   if (payload.action === "addAdminAccount") return logAndReturn_(account, payload, handleAddAdminAccount_(payload));
@@ -1881,11 +1940,15 @@ function handleSaveConfig_(payload) {
   const k = (base) => propKey_(base, formId);
 
   const formTitle = String(payload.formTitle || "").trim();
+  const trustNote = String(payload.trustNote || "").trim();
+  const formSubtitle = String(payload.formSubtitle || "").trim();
   const sheetBaseName = String(payload.sheetBaseName || "").trim();
   const startAt = String(payload.startAt || "").trim();
   const endAt = String(payload.endAt || "").trim();
 
   props.setProperty(k("FORM_TITLE"), formTitle);
+  props.setProperty(k("TRUST_NOTE"), trustNote);
+  props.setProperty(k("FORM_SUBTITLE"), formSubtitle);
   if (sheetBaseName) props.setProperty(k("SHEET_BASE_NAME"), sheetBaseName);
   props.setProperty(k("REG_START"), startAt);
   props.setProperty(k("REG_END"), endAt);
@@ -2364,6 +2427,10 @@ function handleSendCertificate_(payload) {
   const headers = data[0] || [];
   const nidCol = headers.indexOf("National ID");
   const nationalId = String(payload.nationalId || "").trim();
+  // National ID is optional now (see TOGGLEABLE_FIELDS) — an empty value must
+  // never match a row that also happens to have a blank ID, or this could
+  // send someone else's certificate to a totally unrelated registrant.
+  if (!nationalId) return jsonOutput_({ status: "error", message: "السجل ده مسجّل من غير رقم قومي — استخدم صف الجدول مباشرة." });
   const row = data.slice(1).find(r => String(r[nidCol]).trim() === nationalId);
   if (!row) return jsonOutput_({ status: "error", message: "السجل مش موجود في الشيت ده." });
 
@@ -2377,6 +2444,42 @@ function handleSendCertificate_(payload) {
     return jsonOutput_({ status: "error", message: "فشل إرسال الشهادة: " + String(err) });
   }
 }
+
+// action=resendConfirmationEmail — dashboard's "🔁 إعادة إرسال إيميل
+// التأكيد (والـ QR)" button on a single member's detail view. Same
+// row-lookup shape as handleSendCertificate_ above, but resends the plain
+// confirmation email (with its inline check-in QR) instead of the full
+// certificate. Sent synchronously (not through queueConfirmationEmail_)
+// since this is a one-off admin click, not the public form's submit path —
+// the admin is already waiting on a result either way, so there's no success
+// screen to keep snappy here, and a synchronous, immediately-known
+// success/failure result matches how every other resend/send button in the
+// dashboard already behaves.
+function handleResendConfirmationEmail_(payload) {
+  const formId = String(payload.formId || "").trim();
+  const cfg = getRegConfig_(formId);
+  const sheet = findSheet_(payload.sheet || cfg.activeSheetName);
+  if (!sheet) return jsonOutput_({ status: "error", message: "الشيت مش موجود." });
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0] || [];
+  const nidCol = headers.indexOf("National ID");
+  const nationalId = String(payload.nationalId || "").trim();
+  // Same reasoning as handleSendCertificate_ above — never let a blank ID
+  // match another registrant's blank ID.
+  if (!nationalId) return jsonOutput_({ status: "error", message: "السجل ده مسجّل من غير رقم قومي — استخدم صف الجدول مباشرة." });
+  const row = data.slice(1).find(r => String(r[nidCol]).trim() === nationalId);
+  if (!row) return jsonOutput_({ status: "error", message: "السجل مش موجود في الشيت ده." });
+
+  const person = rowToPerson_(headers, row);
+  if (!person.email) return jsonOutput_({ status: "error", message: "السجل ده مفيهوش إيميل." });
+
+  const sent = sendConfirmationEmail_(person, person.membershipNo, cfg);
+  return sent
+    ? jsonOutput_({ status: "success", message: "اتبعت إيميل التأكيد تاني ✓" })
+    : jsonOutput_({ status: "error", message: "فشل إرسال الإيميل — جرب تاني كمان شوية." });
+}
+
 
 // action=sendCertificatesBulk — sends to everyone with a valid email in the
 // given (or currently active) sheet/cycle. Best-effort per row: one failure
@@ -2515,6 +2618,11 @@ function buildRow_(p, membershipNo) {
 }
 
 function isDuplicateNid_(nationalId, formId) {
+  // National ID is now an optional field (see TOGGLEABLE_FIELDS) — an empty
+  // ID must never be treated as a "duplicate" of every other registrant who
+  // also left it blank, or the second person ever to register without one
+  // would get wrongly rejected.
+  if (!nationalId) return false;
   const sheet = getSheet_(formId);
   const data = sheet.getDataRange().getValues();
   const headers = data[0] || [];
@@ -2695,6 +2803,9 @@ function handleCheckin_(payload) {
 // re-registering a SECOND time within the same form's CURRENT active
 // sheet; this function is what makes an ID persistent ACROSS forms.)
 function findExistingMembershipNo_(nationalId) {
+  // Same reasoning as isDuplicateNid_ above — a blank ID must never match
+  // another registrant's blank ID and hand out their membership number.
+  if (!nationalId) return null;
   const ss = getSpreadsheet_();
   const sheets = ss.getSheets().filter(sh => sh.getName() !== ACTIVITY_LOG_SHEET_NAME);
 
@@ -2811,6 +2922,88 @@ function sendConfirmationEmail_(p, membershipNo, cfg) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Async confirmation-email queue — exists ONLY so doPost() can respond to the
+// member immediately after appendRow() instead of making their browser sit
+// on the success screen while sendConfirmationEmail_() runs. The slow part
+// is fetchQrCodeBlob_()'s call to the free, rate-limited api.qrserver.com —
+// a single external HTTP round trip that has nothing to do with the
+// registration itself and can occasionally take a very long time to answer.
+// Moving it a couple of seconds later (via a one-off trigger) means the
+// member's own success screen (name, membership number, their OWN
+// client-side QR from renderMemberQr_ in dys_form.html) shows up instantly;
+// the email with the check-in QR just lands in their inbox shortly after.
+//
+// Only the tiny handful of fields sendConfirmationEmail_ actually reads
+// (name, email, the two optional custom subject/body strings) are queued —
+// NOT the full registration payload — because PropertiesService caps each
+// stored value at 9KB, and the full payload can carry a base64 photo/video
+// URL or other large fields that would blow past that.
+const PENDING_CONF_EMAIL_KEYS_PROP = "PENDING_CONF_EMAIL_KEYS";
+
+function queueConfirmationEmail_(p, membershipNo, cfg) {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const slimPayload = { name: p.name || "", email: p.email };
+    const slimCfg = { confirmEmailSubject: cfg && cfg.confirmEmailSubject, confirmEmailBody: cfg && cfg.confirmEmailBody };
+    const key = "PENDING_CONF_EMAIL_" + membershipNo + "_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
+    props.setProperty(key, JSON.stringify({ p: slimPayload, membershipNo: membershipNo, cfg: slimCfg }));
+
+    const raw = props.getProperty(PENDING_CONF_EMAIL_KEYS_PROP);
+    const keys = raw ? JSON.parse(raw) : [];
+    keys.push(key);
+    props.setProperty(PENDING_CONF_EMAIL_KEYS_PROP, JSON.stringify(keys));
+
+    // A one-off trigger a couple of seconds out. If several registrations
+    // land close together this may create more than one of these — harmless,
+    // since processQueuedConfirmationEmails_ below drains (and locks) the
+    // WHOLE pending list every time it runs, so any extra trigger just finds
+    // nothing left to do and removes itself.
+    ScriptApp.newTrigger("processQueuedConfirmationEmails_").timeBased().after(2000).create();
+    return true; // queued — best-effort, same meaning "emailSent" always had
+  } catch (err) {
+    // Most likely cause: this deployment hasn't been re-authorized yet with
+    // the trigger-creation permission this needs (see appsscript.json —
+    // script.scriptapp scope). Fall back to the old synchronous send so the
+    // member never loses their confirmation email over it either way.
+    console.error("queueConfirmationEmail_ failed, sending synchronously instead:", err);
+    return sendConfirmationEmail_(p, membershipNo, cfg);
+  }
+}
+
+function processQueuedConfirmationEmails_() {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(20000);
+    const props = PropertiesService.getScriptProperties();
+    const raw = props.getProperty(PENDING_CONF_EMAIL_KEYS_PROP);
+    const keys = raw ? JSON.parse(raw) : [];
+    keys.forEach(key => {
+      const itemRaw = props.getProperty(key);
+      if (!itemRaw) return;
+      try {
+        const item = JSON.parse(itemRaw);
+        sendConfirmationEmail_(item.p, item.membershipNo, item.cfg);
+      } catch (err) {
+        console.error("Queued confirmation email failed:", err);
+      } finally {
+        props.deleteProperty(key);
+      }
+    });
+    props.deleteProperty(PENDING_CONF_EMAIL_KEYS_PROP);
+  } finally {
+    lock.releaseLock();
+  }
+
+  // Self-cleanup: remove every one-off trigger pointing at this function
+  // (this run's own, plus any redundant extras from near-simultaneous
+  // registrations) now that the queue has been fully drained under lock.
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === "processQueuedConfirmationEmails_") {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+}
 
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
