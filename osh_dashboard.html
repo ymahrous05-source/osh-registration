@@ -1495,6 +1495,9 @@
           <div class="chart-card">
             <h3>أكثر 8 صفات داخل الكيان</h3><canvas id="chartRole"></canvas>
           </div>
+          <div class="chart-card">
+            <h3>متطوع قديم ولا عضو جديد؟</h3><canvas id="chartVolunteerStatus"></canvas>
+          </div>
         </div>
       </div>
 
@@ -1521,6 +1524,14 @@
             <div class="settings-field">
               <label for="cfgFormTitle">عنوان الاستمارة</label>
               <input type="text" id="cfgFormTitle" placeholder="مثال: استمارة تسجيل أسرة صناع الحياة 2026">
+            </div>
+            <div class="settings-field">
+              <label for="cfgTrustNote">جملة الثقة اللي تحت اللوجو (سيب فاضي = النص الافتراضي)</label>
+              <input type="text" id="cfgTrustNote" placeholder="مثال: جاهز تكون جزء من الحدث؟ سجّل بياناتك وخلّينا نشوفك هناك">
+            </div>
+            <div class="settings-field">
+              <label for="cfgFormSubtitle">السطر اللي تحت عنوان الاستمارة مباشرة (سيب فاضي = النص الافتراضي)</label>
+              <input type="text" id="cfgFormSubtitle" placeholder="مثال: GAP Event - Life Makers">
             </div>
             <div class="settings-field">
               <label for="cfgSheetBaseName">اسم الشيت الأساسي</label>
@@ -2173,6 +2184,20 @@
     }
 
     const COL = {}; // resolved indices, computed after each fetch
+
+    // Custom fields (admin-added, e.g. from "🧩 حقول الاستمارة") don't get
+    // their own sheet column — every registrant's answers to all of them
+    // live together as one JSON blob in the "Custom Fields (JSON)" column
+    // (see CUSTOM_FIELDS_HEADER in Code.gs). This pulls out one field's
+    // answer for one row by its key (e.g. "c_isvolunteer").
+    function getCustomFieldAnswer_(row, key) {
+      if (COL.customFieldsJson < 0) return "";
+      try {
+        const obj = JSON.parse(row[COL.customFieldsJson] || "{}");
+        return obj && obj[key] ? String(obj[key]) : "";
+      } catch (e) { return ""; }
+    }
+
     function resolveColumns() {
       COL.role = findColIndex(["Role in Entity", "الصفة"]);
       COL.faculty = findColIndex(["Faculty", "الكلية"]);
@@ -2185,6 +2210,10 @@
       COL.phone = findColIndex(["Phone", "الهاتف"]);
       COL.whatsapp = findColIndex(["Whatsapp", "واتساب", "الواتساب"]);
       COL.timestamp = findColIndex(["Timestamp", "Date", "التاريخ", "الوقت"]);
+      // The one JSON blob column holding every admin-added custom field's
+      // answers (see CUSTOM_FIELDS_HEADER in Code.gs) — read per-row via
+      // getCustomFieldAnswer_() below, not a plain column value.
+      COL.customFieldsJson = findColIndex(["Custom Fields (JSON)"]);
     }
 
     // Phone/whatsapp numbers that show up on more than one row — computed
@@ -2338,6 +2367,13 @@
       if (COL.hasJob > -1) cards.push({ num: total ? Math.round(workingCount / total * 100) + "%" : "0%", label: "بيشتغلوا حاليًا" });
       if (COL.graduate > -1) cards.push({ num: total ? Math.round(graduateCount / total * 100) + "%" : "0%", label: "نسبة الخريجين" });
       if (COL.gender > -1) cards.push({ num: total ? Math.round(femaleCount / total * 100) + "%" : "0%", label: "نسبة الإناث" });
+      // "هل انت متطوع معانا بالفعل؟" custom field (key c_isvolunteer) —
+      // straight count of "عضو جديد" answers, since that's the actual
+      // number being tracked here, not a percentage.
+      if (COL.customFieldsJson > -1) {
+        const newMembersCount = allRows.filter(r => getCustomFieldAnswer_(r, "c_isvolunteer") === "عضو جديد").length;
+        cards.push({ num: newMembersCount, label: "أعضاء جداد انضموا" });
+      }
       // Duplicate-phone detector — flags possible double registrations (same
       // person submitting twice with a different National ID, or a typo'd
       // ID). Purely informational: doesn't touch the sheet or block anything.
@@ -2607,6 +2643,8 @@
           if (res.status !== "success") throw new Error(res.message || "error");
           const cfg = res.config;
           document.getElementById("cfgFormTitle").value = cfg.formTitle || "";
+          document.getElementById("cfgTrustNote").value = cfg.trustNote || "";
+          document.getElementById("cfgFormSubtitle").value = cfg.formSubtitle || "";
           document.getElementById("cfgSheetBaseName").value = cfg.sheetBaseName || "";
           document.getElementById("cfgMembershipPrefix").value = cfg.membershipPrefix || "";
           document.getElementById("cfgStartAt").value = isoToLocalInputValue(cfg.startAt);
@@ -2752,6 +2790,7 @@
     // the form itself, e.g. radio pills, so they're not driven by fieldDefs
     // the way the newer "extra" fields are).
     const BUILTIN_FIELD_LABELS = {
+      nationalId: { section: "personal", label: "الرقم القومي" },
       age: { section: "personal", label: "العمر" },
       gender: { section: "personal", label: "النوع" },
       phone: { section: "contact", label: "رقم الهاتف" },
@@ -3262,6 +3301,8 @@
       return {
         action: "saveConfig",
         formTitle: document.getElementById("cfgFormTitle").value.trim(),
+        trustNote: document.getElementById("cfgTrustNote").value.trim(),
+        formSubtitle: document.getElementById("cfgFormSubtitle").value.trim(),
         sheetBaseName: document.getElementById("cfgSheetBaseName").value.trim(),
         membershipPrefix: document.getElementById("cfgMembershipPrefix").value.trim(),
         startAt: startVal ? new Date(startVal).toISOString() : "",
@@ -3588,6 +3629,30 @@
           type: "bar",
           data: { labels: top.map(t => t[0]), datasets: [{ label: "عدد", data: top.map(t => t[1]), backgroundColor: colors.palette[1] }] },
           options: { indexAxis: "y", responsive: true, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: colors.grid } }, y: { grid: { display: false } } } }
+        });
+      }
+
+      // Volunteer status pie — "هل انت متطوع معانا بالفعل؟" custom field
+      // (key "c_isvolunteer", seeded automatically — see getCustomFields_ in
+      // Code.gs). Anyone who registered before this question existed, or
+      // left it blank, falls into its own "لسه ما جاوبش" slice rather than
+      // being silently dropped or miscounted into either real answer.
+      if (COL.customFieldsJson > -1) {
+        let existing = 0, brandNew = 0, unanswered = 0;
+        allRows.forEach(r => {
+          const v = getCustomFieldAnswer_(r, "c_isvolunteer");
+          if (v === "متطوع بالفعل") existing++;
+          else if (v === "عضو جديد") brandNew++;
+          else unanswered++;
+        });
+        const labels = ["متطوع بالفعل", "عضو جديد"];
+        const data = [existing, brandNew];
+        const bg = [colors.palette[6], colors.palette[7]];
+        if (unanswered > 0) { labels.push("لسه ما جاوبش"); data.push(unanswered); bg.push(colors.palette[5]); }
+        charts.volunteerStatus = new Chart(document.getElementById("chartVolunteerStatus"), {
+          type: "doughnut",
+          data: { labels, datasets: [{ data, backgroundColor: bg }] },
+          options: { responsive: true, plugins: { legend: { position: "bottom" } } }
         });
       }
     }
