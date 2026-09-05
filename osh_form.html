@@ -1935,6 +1935,22 @@
             const subEl = document.getElementById("formSubtitleEl");
             if (subEl) subEl.textContent = res.formSubtitle;
           }
+          // Renamed labels for the built-in fields (age, gender, phone...),
+          // set from "🧩 حقول الاستمارة" in the dashboard. Mutating I18N.ar
+          // directly (rather than just touching the DOM once) means the
+          // override also survives the user toggling AR/EN back to Arabic
+          // later — applyLang() always re-reads from this same dictionary.
+          if (res.fieldLabels) {
+            Object.keys(res.fieldLabels).forEach(key => {
+              const override = res.fieldLabels[key];
+              const i18nKey = FIELD_KEY_TO_I18N[key];
+              if (!override || !i18nKey) return;
+              I18N.ar[i18nKey] = override;
+              if (currentLang === "ar") {
+                document.querySelectorAll(`[data-i18n="${i18nKey}"]`).forEach(el => { el.textContent = override; });
+              }
+            });
+          }
           if (res.logoUrl) {
             const img = document.getElementById("customLogoImg");
             img.onload = () => {
@@ -2156,6 +2172,17 @@
     // now toggleable like everything else in this list.
     const TOGGLEABLE_FIELD_KEYS = ["nationalId", "age", "gender", "phone", "whatsapp", "email",
       "faculty", "graduate", "committee", "hasJob"];
+
+    // Maps each of the fields above (plus "name", which is never hidden but
+    // can still have its label renamed) to the i18n dictionary key that
+    // holds its label text — shared by labelFor() below (review screen) and
+    // the field-label overrides applied in loadRegistrationConfig().
+    const FIELD_KEY_TO_I18N = {
+      name: "lblName", age: "lblAge", gender: "lblGender", nationalId: "lblNid",
+      phone: "lblPhone", whatsapp: "lblWhatsapp", email: "lblEmail",
+      faculty: "lblFaculty", graduate: "lblGraduate", committee: "lblCommittee", hasJob: "lblHasJob",
+      currentJob: "lblCurrentJob"
+    };
 
     // Which of the 9 toggleable fields live inside each of the original
     // static steps (2/3/4). Used by updateVisibleSteps_() below to hide a
@@ -2712,13 +2739,7 @@
     ];
 
     function labelFor(key) {
-      const map = {
-        name: "lblName", age: "lblAge", gender: "lblGender", nationalId: "lblNid",
-        phone: "lblPhone", whatsapp: "lblWhatsapp", email: "lblEmail",
-        faculty: "lblFaculty", graduate: "lblGraduate", committee: "lblCommittee", hasJob: "lblHasJob",
-        currentJob: "lblCurrentJob"
-      };
-      if (map[key]) return t(map[key]);
+      if (FIELD_KEY_TO_I18N[key]) return t(FIELD_KEY_TO_I18N[key]);
       return DYNAMIC_FIELD_LABELS[key] || key;
     }
 
