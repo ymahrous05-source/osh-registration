@@ -1703,10 +1703,14 @@
 
           <div class="settings-card">
             <h3>🧩 حقول الاستمارة</h3>
-            <p class="hint">تحكم في أي حقول تظهر في استمارة التسجيل، وأي حقول منهم إجباري وأي حقول اختياري. حقلي "الاسم"
-              و"الرقم القومي" مش موجودين هنا لأنهم أساسيين للنظام (منع التكرار ورقم العضوية بيعتمدوا عليهم) وهيفضلوا
-              ظاهرين وإجباريين دايمًا. أي قسم مفيهوش ولا حقل شغال (لا من دول ولا من الحقول المخصصة تحت) بيختفي من
-              الاستمارة تلقائيًا — مش هيظهر كصفحة فاضية.</p>
+            <p class="hint">تحكم في أي حقول تظهر في استمارة التسجيل، أي حقول منهم إجباري وأي حقول اختياري، وتقدر
+              كمان تغيّر اسم أي حقل (اكتب في خانة الاسم واحفظ). حقل "الاسم بالكامل" لوحده مش في الجدول ده لأنه أساسي
+              للنظام وهيفضل ظاهر وإجباري دايمًا — بس تقدر تغيّر اسمه من الخانة تحت. أي قسم مفيهوش ولا حقل شغال (لا من
+              دول ولا من الحقول المخصصة تحت) بيختفي من الاستمارة تلقائيًا — مش هيظهر كصفحة فاضية.</p>
+            <div class="settings-field">
+              <label for="cfgNameLabel">اسم حقل "الاسم بالكامل" (سيب فاضي = النص الافتراضي)</label>
+              <input type="text" id="cfgNameLabel" placeholder="مثال: الاسم بالكامل">
+            </div>
             <div id="fieldConfigSections"><!-- section groups injected by renderFieldConfigTable() --></div>
 
             <h4 style="margin:20px 0 6px; font-size:14px; color:#e8f0e8;">➕ حقول مخصصة (بالاسم اللي انت عايزه)</h4>
@@ -2368,10 +2372,13 @@
       if (COL.graduate > -1) cards.push({ num: total ? Math.round(graduateCount / total * 100) + "%" : "0%", label: "نسبة الخريجين" });
       if (COL.gender > -1) cards.push({ num: total ? Math.round(femaleCount / total * 100) + "%" : "0%", label: "نسبة الإناث" });
       // "هل انت متطوع معانا بالفعل؟" custom field (key c_isvolunteer) —
-      // straight count of "عضو جديد" answers, since that's the actual
-      // number being tracked here, not a percentage.
+      // straight count of "new member" answers (whatever that option is
+      // CURRENTLY labeled as — see the volunteer-status chart below for why
+      // this reads the live label instead of a hardcoded string).
       if (COL.customFieldsJson > -1) {
-        const newMembersCount = allRows.filter(r => getCustomFieldAnswer_(r, "c_isvolunteer") === "عضو جديد").length;
+        const volunteerField = (latestCustomFields || []).find(f => f.key === "c_isvolunteer");
+        const newLabel = (volunteerField && Array.isArray(volunteerField.options) && volunteerField.options[1]) || "عضو جديد";
+        const newMembersCount = allRows.filter(r => getCustomFieldAnswer_(r, "c_isvolunteer") === newLabel).length;
         cards.push({ num: newMembersCount, label: "أعضاء جداد انضموا" });
       }
       // Duplicate-phone detector — flags possible double registrations (same
@@ -2660,6 +2667,7 @@
             ? `التيمبلت الحالي: ${cfg.certTemplateName || "(بدون اسم)"} ✓`
             : "لسه مفيش تيمبلت شهادة متحمل.", cfg.certTemplateReady ? "ok" : "");
 
+          document.getElementById("cfgNameLabel").value = (cfg.fieldLabels && cfg.fieldLabels.name) || "";
           renderFieldConfigTable(cfg.fieldConfig || {}, cfg.fieldDefs || {}, cfg.fieldSections || {});
           renderCustomFieldsTable(cfg.customFields || []);
           renderSuccessActionsTable(cfg.successActions || []);
@@ -2819,16 +2827,18 @@
           .sort((a, b) => (fieldConfig[a] ? fieldConfig[a].order : 0) - (fieldConfig[b] ? fieldConfig[b].order : 0));
         if (!keysInSection.length) return "";
         const rows = keysInSection.map(key => {
-          const conf = fieldConfig[key] || { enabled: true, required: false };
+          const conf = fieldConfig[key] || { enabled: true, required: false, label: "" };
           return `<tr data-field="${key}" draggable="true" class="draggable-row">
             <td class="drag-handle" title="اسحب لإعادة الترتيب">⠿</td>
-            <td>${allFields[key].label}</td>
+            <td><input type="text" class="fld-label" value="${escapeHtml(conf.label || allFields[key].label)}" style="width:100%; box-sizing:border-box;"></td>
             <td><input type="checkbox" class="fld-enabled" ${conf.enabled ? "checked" : ""}></td>
             <td><input type="checkbox" class="fld-required" ${conf.required ? "checked" : ""} ${conf.enabled ? "" : "disabled"}></td>
           </tr>`;
         }).join("");
         return `<div style="margin-top:14px;">
-          <h4 style="margin:0 0 6px; font-size:13px; color:#9fd8ab;">${fieldSections[sectionKey] || sectionKey}</h4>
+          <input type="text" class="section-label-input" data-section="${sectionKey}" value="${escapeHtml(fieldSections[sectionKey] || sectionKey)}"
+            style="margin:0 0 6px; font-size:13px; color:#9fd8ab; background:transparent; border:1px solid transparent; border-radius:6px; padding:2px 6px; font-weight:600;"
+            onfocus="this.style.borderColor='#2c3e50'" onblur="this.style.borderColor='transparent'">
           <div class="mini-table-scroll">
             <table class="field-config-table">
               <thead><tr><th></th><th>الحقل</th><th>ظاهر</th><th>إجباري</th></tr></thead>
@@ -2879,10 +2889,12 @@
       const fields = {};
       let order = 0;
       document.querySelectorAll("#fieldConfigSections tr[data-field]").forEach(tr => {
+        const labelInput = tr.querySelector(".fld-label");
         fields[tr.dataset.field] = {
           enabled: tr.querySelector(".fld-enabled").checked,
           required: tr.querySelector(".fld-required").checked,
           order: order++,
+          label: labelInput ? labelInput.value.trim() : "",
         };
       });
       return fields;
@@ -2946,7 +2958,11 @@
         return `
         <tr data-key="${cf.key}" draggable="true" class="draggable-row">
           <td class="drag-handle" title="اسحب لإعادة الترتيب">⠿</td>
-          <td>${cf.label} <span class="hint">(${CUSTOM_TYPE_LABELS[cf.type] || cf.type})</span></td>
+          <td>
+            <input type="text" class="cf-label" value="${escapeHtml(cf.label)}" style="width:100%; box-sizing:border-box;">
+            <span class="hint">(${CUSTOM_TYPE_LABELS[cf.type] || cf.type})</span>
+            ${cf.type === "select" ? `<input type="text" class="cf-options" placeholder="الخيارات، مفصولة بفاصلة" value="${escapeHtml((cf.options || []).join(", "))}" style="width:100%; box-sizing:border-box; margin-top:4px;">` : ""}
+          </td>
           <td><code style="font-size:11px; opacity:.8;">${cf.key.startsWith("_tmp_") ? "(هيتحدد بعد الحفظ)" : "{{" + cf.key + "}}"}</code></td>
           <td><input type="checkbox" class="cf-enabled" ${cf.enabled ? "checked" : ""}></td>
           <td><input type="checkbox" class="cf-required" ${cf.required ? "checked" : ""}></td>
@@ -3013,12 +3029,17 @@
         if (!cf) return null;
         const conditionRow = document.querySelector(`.cf-condition-row[data-key-for="${tr.dataset.key}"]`);
         const dependsOnKey = conditionRow ? conditionRow.querySelector(".cf-depends-key").value : "";
-        return Object.assign({}, cf, {
+        const labelInput = tr.querySelector(".cf-label");
+        const optionsInput = tr.querySelector(".cf-options");
+        const updated = Object.assign({}, cf, {
+          label: labelInput ? labelInput.value.trim() || cf.label : cf.label,
           enabled: tr.querySelector(".cf-enabled").checked,
           required: tr.querySelector(".cf-required").checked,
           dependsOnKey,
           dependsOnValue: dependsOnKey && conditionRow ? conditionRow.querySelector(".cf-depends-value").value : "",
         });
+        if (optionsInput) updated.options = optionsInput.value.split(",").map(s => s.trim()).filter(Boolean);
+        return updated;
       }).filter(Boolean);
     }
 
@@ -3040,13 +3061,30 @@
       setNote("fieldConfigNote", `حقل "${label}" اتضاف — دوس "حفظ إعدادات الحقول" تحت عشان يتأكد ويظهر ليه كود.`, "ok");
     });
 
+    // Reads the (optional) renamed section headings the admin typed into the
+    // "🧩 حقول الاستمارة" card — e.g. renaming "حقول مخصصة" to whatever they
+    // actually call it. Untouched fields still show their default text (see
+    // renderFieldConfigTable) but only get sent/saved if changed... actually
+    // this sends whatever's currently shown either way, which is fine: the
+    // backend only stores an override for a key if its value differs from
+    // blank, and re-saving the same default text back is harmless.
+    function collectSectionLabels_() {
+      const labels = {};
+      document.querySelectorAll(".section-label-input").forEach(inp => {
+        labels[inp.dataset.section] = inp.value.trim();
+      });
+      return labels;
+    }
+
     document.getElementById("saveFieldConfigBtn").addEventListener("click", () => {
       const btn = document.getElementById("saveFieldConfigBtn");
       const fields = collectFieldConfig_();
       const customFields = collectCustomFields_();
+      const sectionLabels = collectSectionLabels_();
+      const nameLabel = document.getElementById("cfgNameLabel").value.trim();
       btn.disabled = true;
       setNote("fieldConfigNote", "جاري الحفظ...");
-      postAdmin({ action: "saveFieldConfig", fields, customFields })
+      postAdmin({ action: "saveFieldConfig", fields, customFields, sectionLabels, nameLabel })
         .then(res => {
           if (res.status !== "success") throw new Error(res.message || "error");
           setNote("fieldConfigNote", "اتحفظت إعدادات الحقول ✓ — سرت مباشرة على استمارة التسجيل", "ok");
@@ -3634,18 +3672,24 @@
 
       // Volunteer status pie — "هل انت متطوع معانا بالفعل؟" custom field
       // (key "c_isvolunteer", seeded automatically — see getCustomFields_ in
-      // Code.gs). Anyone who registered before this question existed, or
-      // left it blank, falls into its own "لسه ما جاوبش" slice rather than
-      // being silently dropped or miscounted into either real answer.
+      // Code.gs). Reads the CURRENT option labels from latestCustomFields
+      // instead of hardcoding them, since the admin can now rename them
+      // freely from the "حقول مخصصة" table above — a submission stores
+      // whichever exact text was shown at the time, so if the options ever
+      // get renamed, older answers under the old wording will land in the
+      // "لسه ما جاوبش" slice below rather than silently miscounting.
       if (COL.customFieldsJson > -1) {
+        const volunteerField = (latestCustomFields || []).find(f => f.key === "c_isvolunteer");
+        const opts = (volunteerField && Array.isArray(volunteerField.options) && volunteerField.options.length >= 2)
+          ? volunteerField.options : ["متطوع بالفعل", "عضو جديد"];
         let existing = 0, brandNew = 0, unanswered = 0;
         allRows.forEach(r => {
           const v = getCustomFieldAnswer_(r, "c_isvolunteer");
-          if (v === "متطوع بالفعل") existing++;
-          else if (v === "عضو جديد") brandNew++;
+          if (v === opts[0]) existing++;
+          else if (v === opts[1]) brandNew++;
           else unanswered++;
         });
-        const labels = ["متطوع بالفعل", "عضو جديد"];
+        const labels = [opts[0], opts[1]];
         const data = [existing, brandNew];
         const bg = [colors.palette[6], colors.palette[7]];
         if (unanswered > 0) { labels.push("لسه ما جاوبش"); data.push(unanswered); bg.push(colors.palette[5]); }
