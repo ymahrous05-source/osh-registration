@@ -438,6 +438,10 @@ function getFieldConfig_(formId) {
       // ever dragged anything), so ordering degrades gracefully to "however
       // they were defined" rather than a random/undefined order.
       order: typeof s.order === "number" ? s.order : index,
+      // Renamed label, if the admin ever typed one in — "" means "no
+      // override, use the built-in default" (see buildFieldLabelOverrides_
+      // and buildFieldDefsForClient_, which are what actually apply this).
+      label: typeof s.label === "string" ? s.label : "",
     };
   });
   return result;
@@ -458,9 +462,17 @@ function handleSaveFieldConfig_(payload) {
       enabled: f.enabled !== false,   // default true unless explicitly turned off
       required: f.required === true,  // default false unless explicitly turned on
       order: typeof f.order === "number" ? f.order : index,
+      label: String(f.label || "").trim(),
     };
   });
   PropertiesService.getScriptProperties().setProperty(propKey_("FIELD_CONFIG", formId), JSON.stringify(sanitized));
+
+  // "name" isn't part of ALL_BUILTIN_FIELDS at all (it's never toggleable —
+  // see the note on TOGGLEABLE_FIELDS above) so its renamed label, if any,
+  // is kept as its own tiny setting instead of living in FIELD_CONFIG.
+  if (typeof payload.nameLabel !== "undefined") {
+    PropertiesService.getScriptProperties().setProperty(propKey_("NAME_LABEL", formId), String(payload.nameLabel || "").trim());
+  }
 
   let customFields = getCustomFields_(formId);
   if (Array.isArray(payload.customFields)) {
@@ -471,7 +483,41 @@ function handleSaveFieldConfig_(payload) {
     customFields.forEach((cf, i) => { cf.order = i; });
     saveCustomFields_(customFields, formId);
   }
+
+  // Section headings ("بيانات إضافية", "حقول مخصصة", etc.) — optional
+  // per-form overrides of the FIELD_SECTIONS defaults. Only the keys the
+  // admin actually typed something into get saved; leaving one blank just
+  // falls back to its default text (see getSectionLabels_ below).
+  const fieldSections = getSectionLabelOverrides_(formId);
+  if (payload.sectionLabels && typeof payload.sectionLabels === "object") {
+    Object.keys(FIELD_SECTIONS).forEach(key => {
+      const v = String(payload.sectionLabels[key] || "").trim();
+      if (v) fieldSections[key] = v; else delete fieldSections[key];
+    });
+    PropertiesService.getScriptProperties().setProperty(propKey_("SECTION_LABELS", formId), JSON.stringify(fieldSections));
+  }
+
   return jsonOutput_({ status: "success", fieldConfig: sanitized, customFields });
+}
+
+// Per-form overrides of the FIELD_SECTIONS default headings (personal,
+// education, contact, entity, other, custom) — lets an admin rename e.g.
+// "حقول مخصصة" to whatever they actually call it, from the "🧩 حقول
+// الاستمارة" card, same as any other setting. Falls back to the built-in
+// default for any key never overridden.
+function getSectionLabelOverrides_(formId) {
+  const raw = PropertiesService.getScriptProperties().getProperty(propKey_("SECTION_LABELS", formId));
+  if (!raw) return {};
+  try {
+    const obj = JSON.parse(raw);
+    return (obj && typeof obj === "object") ? obj : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function getSectionLabels_(formId) {
+  return Object.assign({}, FIELD_SECTIONS, getSectionLabelOverrides_(formId));
 }
 
 // ---------------------------------------------------------------------------
@@ -882,6 +928,7 @@ function handlePublicConfig_(e) {
     formTitle: cfg.formTitle,
     trustNote: cfg.trustNote,
     formSubtitle: cfg.formSubtitle,
+    fieldLabels: cfg.fieldLabels,
     logoUrl: cfg.logoUrl,
     startAt: cfg.startAt,
     endAt: cfg.endAt,
@@ -1574,8 +1621,9 @@ function getRegConfig_(formId) {
     certTemplateReady: !!props.getProperty(k("CERT_TEMPLATE_FILE_ID")),
     certTemplateName: props.getProperty(k("CERT_TEMPLATE_NAME")) || "",
     fieldConfig: getFieldConfig_(formId),
-    fieldDefs: buildFieldDefsForClient_(),
-    fieldSections: FIELD_SECTIONS,
+    fieldDefs: buildFieldDefsForClient_(formId),
+    fieldLabels: buildFieldLabelOverrides_(formId),
+    fieldSections: getSectionLabels_(formId),
     customFields: getCustomFields_(formId),
     successActions: getSuccessActions_(formId),
     membershipPrefix: props.getProperty(k("MEMBERSHIP_PREFIX")) || MEMBERSHIP_PREFIX,
@@ -1593,15 +1641,34 @@ function getRegConfig_(formId) {
 // renders generically from this metadata (see buildDynamicStep_ in
 // dys_form.html). Sent to both the dashboard (to build the checkboxes) and
 // the public form (to build the extra-fields step).
-function buildFieldDefsForClient_() {
+function buildFieldDefsForClient_(formId) {
+  const fieldConfig = getFieldConfig_(formId);
   const defs = {};
   Object.keys(EXTRA_FIELDS).forEach(key => {
     const f = EXTRA_FIELDS[key];
-    defs[key] = { section: f.section, label: f.label, type: f.type, options: f.options || null };
+    const override = fieldConfig[key] && fieldConfig[key].label;
+    defs[key] = { section: f.section, label: override || f.label, type: f.type, options: f.options || null };
   });
   defs.photo = { section: PHOTO_FIELD.section, label: PHOTO_FIELD.label, type: PHOTO_FIELD.type, options: null };
   defs.video = { section: VIDEO_FIELD.section, label: VIDEO_FIELD.label, type: VIDEO_FIELD.type, options: null };
   return defs;
+}
+
+// Renamed labels for the 10 hand-built fields (age, gender, phone... plus
+// "name") — these render from hardcoded HTML/i18n text on the form (see
+// TOGGLEABLE_FIELD_KEYS + FIELD_KEY_TO_I18N in osh_form.html), unlike
+// EXTRA_FIELDS/custom fields which already render generically from
+// server-sent label text. This is what makes renaming them possible at all
+// without editing that HTML directly.
+function buildFieldLabelOverrides_(formId) {
+  const labels = {};
+  const fieldConfig = getFieldConfig_(formId);
+  Object.keys(TOGGLEABLE_FIELDS).forEach(key => {
+    if (fieldConfig[key] && fieldConfig[key].label) labels[key] = fieldConfig[key].label;
+  });
+  const nameLabel = PropertiesService.getScriptProperties().getProperty(propKey_("NAME_LABEL", formId));
+  if (nameLabel) labels.name = nameLabel;
+  return labels;
 }
 
 // "before"  → now is earlier than startAt (registration hasn't opened yet)
