@@ -1363,7 +1363,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 2l7 3v6c0 5-3.4 8.4-7 11-3.6-2.6-7-6-7-11V5l7-3z" />
         </svg>
-        <span data-i18n="trustNote">بياناتك بتتبعت مباشرة للجنة ومحدش تاني بيشوفها</span>
+        <span id="trustNoteEl" data-i18n="trustNote">جاهز تكون جزء من الحدث؟ سجّل بياناتك وخلّينا نشوفك هناك</span>
       </div>
       <div class="lang-toggle" role="group" aria-label="Language">
         <button type="button" id="langAr" class="active" data-lang="ar">AR</button>
@@ -1382,7 +1382,7 @@
 
       <div id="formArea">
         <h1 class="title" id="formTitleEl" data-i18n="pageTitle">استمارة تسجيل البيانات</h1>
-        <p class="subtitle">Osar Sonaa Al-Hayah &middot; أسرة صناع الحياة بالجامعات المصرية</p>
+        <p class="subtitle" id="formSubtitleEl">GAP Event - Life Makers</p>
 
         <div class="stars" id="starsRow">
           <div class="star" data-step="1"><svg viewBox="0 0 24 24">
@@ -1720,7 +1720,7 @@
     // ==================== i18n ====================
     const I18N = {
       ar: {
-        trustNote: "بياناتك بتتبعت مباشرة للجنة ومحدش تاني بيشوفها",
+        trustNote: "جاهز تكون جزء من الحدث؟ سجّل بياناتك وخلّينا نشوفك هناك",
         pageTitle: "استمارة تسجيل البيانات",
         pctComplete: "مكتمل",
         autosaved: "محفوظ تلقائيًا",
@@ -1926,6 +1926,14 @@
             document.title = res.formTitle;
             const titleEl = document.getElementById("formTitleEl");
             if (titleEl) titleEl.textContent = res.formTitle;
+          }
+          if (res.trustNote) {
+            const trustEl = document.getElementById("trustNoteEl");
+            if (trustEl) trustEl.textContent = res.trustNote;
+          }
+          if (res.formSubtitle) {
+            const subEl = document.getElementById("formSubtitleEl");
+            if (subEl) subEl.textContent = res.formSubtitle;
           }
           if (res.logoUrl) {
             const img = document.getElementById("customLogoImg");
@@ -2143,9 +2151,10 @@
 
     // ---- Field show/hide + required/optional, driven by the dashboard's
     // "🧩 حقول الاستمارة" settings card (see applyFieldConfig_ call in
-    // loadRegistrationConfig). "name" and "nationalId" are never in here —
-    // they're always shown and required.
-    const TOGGLEABLE_FIELD_KEYS = ["age", "gender", "phone", "whatsapp", "email",
+    // loadRegistrationConfig). "name" is never in here — it's always shown
+    // and required. "nationalId" used to be hardcoded the same way but is
+    // now toggleable like everything else in this list.
+    const TOGGLEABLE_FIELD_KEYS = ["nationalId", "age", "gender", "phone", "whatsapp", "email",
       "faculty", "graduate", "committee", "hasJob"];
 
     // Which of the 9 toggleable fields live inside each of the original
