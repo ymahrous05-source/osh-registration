@@ -2218,6 +2218,9 @@
       // answers (see CUSTOM_FIELDS_HEADER in Code.gs) — read per-row via
       // getCustomFieldAnswer_() below, not a plain column value.
       COL.customFieldsJson = findColIndex(["Custom Fields (JSON)"]);
+      COL.membershipNo = findColIndex(["Membership No", "رقم العضوية"]);
+      COL.receiptUrl = findColIndex(["Receipt URL"]);
+      COL.paymentStatus = findColIndex(["Payment Status"]);
     }
 
     // Phone/whatsapp numbers that show up on more than one row — computed
@@ -2498,6 +2501,12 @@
       content.innerHTML = allHeaders.map((h, i) => {
         const val = String(row[i] ?? "") || "—";
         const canCopy = i === COL.phone || i === COL.nid || i === COL.email;
+        if (i === COL.receiptUrl && val !== "—") {
+          return `<div class="modal-row"><span class="k">${escapeHtml(h)}</span><span class="v">
+            <a href="${escapeHtml(val)}" target="_blank" rel="noopener">
+              <img src="${escapeHtml(val)}" alt="إيصال الدفع" style="max-width:160px; max-height:200px; border-radius:8px; border:1px solid #33475b; display:block; margin-top:4px;">
+            </a></span></div>`;
+        }
         return `<div class="modal-row"><span class="k">${escapeHtml(h)}</span><span class="v">${escapeHtml(val)}${canCopy && val !== "—" ? `<button class="modal-copy" data-copy="${escapeHtml(val)}">نسخ</button>` : ""}</span></div>`;
       }).join("");
       content.querySelectorAll(".modal-copy").forEach(btn => {
@@ -2559,6 +2568,39 @@
             });
         });
         content.appendChild(resendBtn);
+      }
+
+      if (currentPermissions.manageCertificates && COL.paymentStatus > -1) {
+        const membershipNo = String(row[COL.membershipNo] ?? "").trim();
+        let isConfirmed = String(row[COL.paymentStatus] ?? "").trim() === "تم التأكيد ✓";
+        const payBtn = document.createElement("button");
+        payBtn.type = "button";
+        payBtn.className = "modal-close";
+        payBtn.style.marginTop = "10px";
+        const labelFor = (confirmed) => confirmed ? "↩️ إلغاء تأكيد الدفع" : "✅ تأكيد الدفع";
+        payBtn.textContent = labelFor(isConfirmed);
+        payBtn.disabled = !membershipNo;
+        if (!membershipNo) payBtn.title = "السجل ده مفهوش رقم عضوية";
+        payBtn.addEventListener("click", () => {
+          const wantConfirmed = !isConfirmed;
+          payBtn.disabled = true;
+          payBtn.textContent = "جاري الحفظ...";
+          postAdmin({ action: "confirmPayment", membershipNo, confirmed: wantConfirmed, sheet: currentSheetName || activeSheetNameFromServer })
+            .then(res => {
+              if (res.status !== "success") throw new Error(res.message || "error");
+              isConfirmed = res.paymentStatus === "تم التأكيد ✓";
+              row[COL.paymentStatus] = res.paymentStatus;
+              toast(isConfirmed ? "اتأكد الدفع ✓" : "اتلغى التأكيد");
+              payBtn.textContent = labelFor(isConfirmed);
+              payBtn.disabled = false;
+            })
+            .catch(err => {
+              toast("فشل الحفظ: " + err.message);
+              payBtn.textContent = labelFor(isConfirmed);
+              payBtn.disabled = false;
+            });
+        });
+        content.appendChild(payBtn);
       }
 
       rowModalOverlay.classList.add("show");
