@@ -209,7 +209,7 @@ const HEADERS = [
   "Role in Entity",   // ← this is the "committee" field from the form
   "Has Job",
   "Current Job",
-].concat(EXTRA_HEADERS).concat([CUSTOM_FIELDS_HEADER]).concat(["Photo URL", "Video URL", "Checked In At"]);
+].concat(EXTRA_HEADERS).concat([CUSTOM_FIELDS_HEADER]).concat(["Photo URL", "Video URL", "Checked In At", "Receipt URL", "Payment Status"]);
 
 const MIN_FILL_MS = 2500; // mirrors the frontend's own MIN_FILL_MS anti-bot check
 const MEMBERSHIP_PREFIX = "OSH";
@@ -257,12 +257,19 @@ const PHOTO_FIELD = { section: "personal", label: "صورة شخصية", type: "
 // BACKEND_SETUP_STEPS.md's "Cloudinary" section for the one-time setup.
 const VIDEO_FIELD = { section: "personal", label: "فيديو (اختياري)", type: "video", defaultRequired: false };
 
-// Every built-in field (original 9 + the newer 17 + the photo field) — this
-// is what the dashboard's "🧩 حقول الاستمارة" card and
-// getFieldConfig_/handleSaveFieldConfig_ iterate over. The original 9 keep
+// Same idea as PHOTO_FIELD (upload handled server-side through Apps
+// Script/Drive, not Cloudinary — a receipt screenshot is small, no need for
+// the video field's separate direct-to-Cloudinary path). Off by default
+// (defaultRequired: false, same as photo) since not every form collects
+// payment — an admin turns it on from "🧩 حقول الاستمارة" for events that do.
+const RECEIPT_FIELD = { section: "entity", label: "صورة إيصال الدفع", type: "receipt", defaultRequired: false };
+
+// Every built-in field (original 10 + the newer 17 + the photo/video/receipt
+// fields) — this is what the dashboard's "🧩 حقول الاستمارة" card and
+// getFieldConfig_/handleSaveFieldConfig_ iterate over. The original 10 keep
 // their bespoke hand-written validation in validatePayload_ (unchanged);
 // EXTRA_FIELDS are validated generically.
-const ALL_BUILTIN_FIELDS = Object.assign({}, TOGGLEABLE_FIELDS, EXTRA_FIELDS, { photo: PHOTO_FIELD, video: VIDEO_FIELD });
+const ALL_BUILTIN_FIELDS = Object.assign({}, TOGGLEABLE_FIELDS, EXTRA_FIELDS, { photo: PHOTO_FIELD, video: VIDEO_FIELD, receiptPhoto: RECEIPT_FIELD });
 
 
 // ---------------------------------------------------------------------------
@@ -329,6 +336,7 @@ function doPost(e) {
       "uploadCertTemplate", "removeCertTemplate",
       "sendCertificate", "sendCertificatesBulk", "sendTestCertificate",
       "resendConfirmationEmail",
+      "confirmPayment",
       "saveFieldConfig",
       "listAdminAccounts", "addAdminAccount", "removeAdminAccount", "reviewAccess", "updateAccountPermissions",
       "exportExcel", "getActivityLog",
@@ -1158,6 +1166,35 @@ function getOrCreatePhotosFolder_() {
   return DriveApp.createFolder(FOLDER_NAME);
 }
 
+// Same idea as uploadRegistrationPhoto_ above, just its own Drive folder so
+// payment receipts don't get mixed in with personal photos.
+function uploadPaymentReceipt_(receiptBase64) {
+  if (!receiptBase64) return "";
+  try {
+    const raw = String(receiptBase64);
+    const commaIdx = raw.indexOf(",");
+    const base64 = commaIdx > -1 && raw.slice(0, commaIdx).indexOf("base64") > -1 ? raw.slice(commaIdx + 1) : raw;
+    const mimeMatch = raw.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64/);
+    const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
+    const bytes = Utilities.base64Decode(base64);
+    const blob = Utilities.newBlob(bytes, mimeType, "receipt-" + new Date().getTime() + ".jpg");
+
+    const folder = getOrCreateReceiptsFolder_();
+    const file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    return "https://drive.google.com/uc?export=view&id=" + file.getId();
+  } catch (err) {
+    return "";
+  }
+}
+
+function getOrCreateReceiptsFolder_() {
+  const FOLDER_NAME = "أسرة صناع الحياة - إيصالات الدفع";
+  const existing = DriveApp.getFoldersByName(FOLDER_NAME);
+  if (existing.hasNext()) return existing.next();
+  return DriveApp.createFolder(FOLDER_NAME);
+}
+
 // ---------------------------------------------------------------------------
 // Firestore mirror (optional, additive) — every successful registration is
 // ALSO written to a Firestore "registrations" collection, in addition to
@@ -1233,6 +1270,13 @@ function handleSubmit_(payload) {
     if (isDuplicateNid_(nationalId, formId)) {
       return jsonOutput_({ status: "duplicate" });
     }
+    // No National ID to check against (off, or optional and left blank) —
+    // fall back to phone/WhatsApp/email so this doesn't just let anyone
+    // register over and over with nothing to stop them. See
+    // isDuplicateByOtherFields_ for exactly what it compares.
+    if (!nationalId && isDuplicateByOtherFields_(payload, formId)) {
+      return jsonOutput_({ status: "duplicate" });
+    }
 
     // ---- 5) generate membership number (or reuse an existing one, if this
     //         same person already registered before — see
@@ -1241,6 +1285,9 @@ function handleSubmit_(payload) {
     const fc = getFieldConfig_(formId);
     if (fc.photo && fc.photo.enabled && payload.photoBase64) {
       payload.photoUrl = uploadRegistrationPhoto_(payload.photoBase64);
+    }
+    if (fc.receiptPhoto && fc.receiptPhoto.enabled && payload.receiptBase64) {
+      payload.receiptUrl = uploadPaymentReceipt_(payload.receiptBase64);
     }
     const sheet = getSheet_(formId);
     const rowValues = buildRow_(payload, membershipNo);
@@ -1403,6 +1450,11 @@ function validatePayload_(p, formId) {
   // never blocks the registration even if it fails.
   if (isOn("photo") && isReq("photo") && !p.photoBase64) {
     errors.push("photo");
+  }
+
+  // Payment receipt — same shape as the photo check above.
+  if (isOn("receiptPhoto") && isReq("receiptPhoto") && !p.receiptBase64) {
+    errors.push("receiptPhoto");
   }
 
   // Video — unlike photo, this is uploaded straight from the browser to
@@ -1651,6 +1703,8 @@ function buildFieldDefsForClient_(formId) {
   });
   defs.photo = { section: PHOTO_FIELD.section, label: PHOTO_FIELD.label, type: PHOTO_FIELD.type, options: null };
   defs.video = { section: VIDEO_FIELD.section, label: VIDEO_FIELD.label, type: VIDEO_FIELD.type, options: null };
+  const receiptOverride = fieldConfig.receiptPhoto && fieldConfig.receiptPhoto.label;
+  defs.receiptPhoto = { section: RECEIPT_FIELD.section, label: receiptOverride || RECEIPT_FIELD.label, type: RECEIPT_FIELD.type, options: null };
   return defs;
 }
 
@@ -1734,6 +1788,7 @@ function describeActionForLog_(payload) {
     case "sendCertificatesBulk": return "بعت شهادات لدفعة من الأعضاء";
     case "sendTestCertificate": return `بعت شهادة تجريبية لـ ${payload.testEmail || ""}`;
     case "resendConfirmationEmail": return `أعاد إرسال إيميل التأكيد (${payload.nationalId || ""})`;
+    case "confirmPayment": return `${payload.confirmed ? "أكّد" : "ألغى تأكيد"} دفع (${payload.membershipNo || ""})`;
     case "saveFieldConfig": return "عدّل إعدادات حقول الاستمارة";
     case "listAdminAccounts": return "شاف قائمة الحسابات";
     case "addAdminAccount": return `أضاف/عدّل حساب: ${payload.name || ""}`;
@@ -1823,6 +1878,7 @@ const ACTION_PERMISSIONS = {
   sendCertificatesBulk: "manageCertificates",
   sendTestCertificate: "manageCertificates",
   resendConfirmationEmail: "manageCertificates",
+  confirmPayment: "manageCertificates",
   saveFieldConfig: "manageFields",
   listAdminAccounts: "manageAccounts",
   addAdminAccount: "manageAccounts",
@@ -1853,6 +1909,7 @@ function handleAdminAction_(payload) {
   if (payload.action === "sendCertificatesBulk") return logAndReturn_(account, payload, handleSendCertificatesBulk_(payload));
   if (payload.action === "sendTestCertificate") return logAndReturn_(account, payload, handleSendTestCertificate_(payload));
   if (payload.action === "resendConfirmationEmail") return logAndReturn_(account, payload, handleResendConfirmationEmail_(payload));
+  if (payload.action === "confirmPayment") return logAndReturn_(account, payload, handleConfirmPayment_(payload));
   if (payload.action === "saveFieldConfig") return logAndReturn_(account, payload, handleSaveFieldConfig_(payload));
   if (payload.action === "listAdminAccounts") return handleListAdminAccounts_(); // read-only, not logged — keeps the log focused on actual changes
   if (payload.action === "addAdminAccount") return logAndReturn_(account, payload, handleAddAdminAccount_(payload));
@@ -2547,6 +2604,45 @@ function handleResendConfirmationEmail_(payload) {
     : jsonOutput_({ status: "error", message: "فشل إرسال الإيميل — جرب تاني كمان شوية." });
 }
 
+// action=confirmPayment — dashboard's payment-review toggle (checks the
+// uploaded receipt image, then marks/unmarks a member's "Payment Status"
+// cell). Looked up by Membership No instead of National ID — unlike the two
+// actions above, this needs to work for EVERY member regardless of whether
+// they even have a National ID (see isDuplicateByOtherFields_'s reasoning
+// for why that field can be blank now).
+function handleConfirmPayment_(payload) {
+  const formId = String(payload.formId || "").trim();
+  const cfg = getRegConfig_(formId);
+  const sheet = findSheet_(payload.sheet || cfg.activeSheetName);
+  if (!sheet) return jsonOutput_({ status: "error", message: "الشيت مش موجود." });
+
+  const membershipNo = String(payload.membershipNo || "").trim();
+  if (!membershipNo) return jsonOutput_({ status: "error", message: "رقم العضوية مطلوب." });
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0] || [];
+  const msCol = headers.indexOf("Membership No");
+  let rowIndex = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][msCol]).trim() === membershipNo) { rowIndex = i; break; }
+  }
+  if (rowIndex === -1) return jsonOutput_({ status: "error", message: "السجل مش موجود في الشيت ده." });
+
+  let statusCol = headers.indexOf("Payment Status");
+  if (statusCol === -1) {
+    // Sheet predates this feature — heal it now so there's somewhere to
+    // write, then re-read the real column position (same pattern as
+    // handleCheckin_'s "Checked In At" self-heal).
+    healSheetHeaders_(sheet);
+    statusCol = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].indexOf("Payment Status");
+    if (statusCol === -1) return jsonOutput_({ status: "error", message: "تعذر تجهيز عمود حالة الدفع — جرب تاني كمان شوية." });
+  }
+
+  const newStatus = payload.confirmed ? "تم التأكيد ✓" : "قيد المراجعة";
+  sheet.getRange(rowIndex + 1, statusCol + 1).setValue(newStatus);
+  return jsonOutput_({ status: "success", paymentStatus: newStatus });
+}
+
 
 // action=sendCertificatesBulk — sends to everyone with a valid email in the
 // given (or currently active) sheet/cycle. Best-effort per row: one failure
@@ -2681,7 +2777,15 @@ function buildRow_(p, membershipNo) {
   ];
   const extraRow = EXTRA_HEADERS.map(h => str(p[HEADER_TO_EXTRA_FIELD[h]]));
   const customJson = JSON.stringify(p.customFields || {});
-  return legacyRow.concat(extraRow).concat([customJson]).concat([str(p.photoUrl), str(p.videoUrl)]);
+  // Order after this point: Photo URL, Video URL, Checked In At (always left
+  // blank here — only ever set later, by the check-in scanner), Receipt URL,
+  // Payment Status. The "" placeholder is deliberate: appendRow writes
+  // positionally, so anything AFTER a column this function doesn't set (like
+  // "Checked In At") needs an explicit blank of its own, not just omission —
+  // omission only works for trailing columns, and this isn't trailing
+  // anymore now that Receipt URL/Payment Status come after it.
+  const paymentStatus = str(p.receiptUrl) ? "قيد المراجعة" : "";
+  return legacyRow.concat(extraRow).concat([customJson]).concat([str(p.photoUrl), str(p.videoUrl), "", str(p.receiptUrl), paymentStatus]);
 }
 
 function isDuplicateNid_(nationalId, formId) {
@@ -2696,6 +2800,38 @@ function isDuplicateNid_(nationalId, formId) {
   const nidCol = headers.indexOf("National ID");
   if (nidCol === -1) return false;
   return data.slice(1).some(row => String(row[nidCol]).trim() === nationalId);
+}
+
+// Fallback duplicate-guard for when National ID is off (disabled, or
+// optional and left blank) — WITHOUT it there'd be no unique key at all to
+// catch the same person registering twice. Checks phone, WhatsApp, and
+// email instead: if ANY of those a registrant actually filled in matches an
+// existing row's value for that same field, the submission is rejected as a
+// duplicate exactly like a repeated National ID would be. Only ever called
+// when nationalId is blank — with a real National ID present that's still
+// the single authoritative check (this never runs alongside it), so two
+// genuinely different people who happen to share a household phone/email
+// can't get wrongly rejected as long as National ID is actually in use.
+function isDuplicateByOtherFields_(payload, formId) {
+  const checks = [
+    { header: "Phone", value: String(payload.phone || "").trim() },
+    { header: "Whatsapp", value: String(payload.whatsapp || "").trim() },
+    { header: "Email", value: String(payload.email || "").trim().toLowerCase() },
+  ].filter(c => c.value);
+  if (!checks.length) return false; // nothing filled in to even compare — can't tell, so let it through
+
+  const sheet = getSheet_(formId);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0] || [];
+  checks.forEach(c => { c.col = headers.indexOf(c.header); });
+  const usable = checks.filter(c => c.col > -1);
+  if (!usable.length) return false;
+
+  return data.slice(1).some(row => usable.some(c => {
+    const rowVal = String(row[c.col] || "").trim();
+    if (!rowVal) return false;
+    return c.header === "Email" ? rowVal.toLowerCase() === c.value : rowVal === c.value;
+  }));
 }
 
 // ---------------------------------------------------------------------------
