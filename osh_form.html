@@ -1749,7 +1749,7 @@
         step1: "البيانات الشخصية", step2: "بيانات التواصل", step3: "البيانات الدراسية", step4: "اللجنة", step5: "بيانات إضافية",
         emptyVal: "—", notEntered: "لم يُدخل",
         submitGeneric: "حصل خطأ أثناء الإرسال. من فضلك حاول تاني.",
-        submitDuplicate: "أنت مسجل بالفعل بنفس الرقم القومي، مفيش داعي تسجل تاني.",
+        submitDuplicate: "أنت مسجل بالفعل، مفيش داعي تسجل تاني.",
         retry: "إعادة المحاولة",
         sending: "جاري الإرسال...",
         emailSentOk: "بعتنالك رسالة تأكيد على إيميلك.",
@@ -1801,7 +1801,7 @@
         step1: "Personal info", step2: "Contact info", step3: "Academic info", step4: "Committee", step5: "Extra info",
         emptyVal: "—", notEntered: "not entered",
         submitGeneric: "Something went wrong while sending. Please try again.",
-        submitDuplicate: "You're already registered with this National ID, no need to register again.",
+        submitDuplicate: "You're already registered, no need to register again.",
         retry: "Retry",
         sending: "Sending...",
         emailSentOk: "We sent you a confirmation email.",
@@ -2301,6 +2301,11 @@
           <input type="file" accept="image/*" class="photo-file-input">
           <img class="photo-preview" style="display:none; max-width:130px; max-height:130px; border-radius:10px; margin-top:8px; object-fit:cover;">
           <div class="hint" style="margin-top:4px;">هترفع صورة، وهنصغّرها تلقائيًا قبل الإرسال.</div>`;
+      } else if (f.type === "receipt") {
+        inner = `<input type="hidden" name="${f.key}">
+          <input type="file" accept="image/*" class="receipt-file-input">
+          <img class="receipt-preview" style="display:none; max-width:180px; max-height:220px; border-radius:10px; margin-top:8px; object-fit:contain; border:1px solid #33475b;">
+          <div class="hint" style="margin-top:4px;">ارفع سكرين شوت/صورة إيصال التحويل، وهنصغّرها تلقائيًا قبل الإرسال.</div>`;
       } else if (f.type === "video") {
         inner = `<input type="hidden" name="${f.key}">
           <input type="file" accept="video/*" class="video-file-input">
@@ -2352,6 +2357,7 @@
     }
 
     let photoBase64Data_ = "";
+    let receiptBase64Data_ = "";
 
     // Uploads a video file straight from the browser to Cloudinary (an
     // "unsigned" upload — no secret key needed client-side, just the cloud
@@ -2457,6 +2463,7 @@
           validators[f.key] = (v) => {
             if (v === "" || v === undefined) return false; // validateStep only calls this when the field isn't optional-empty
             if (f.type === "photo") return v === "1"; // hidden input is set to "1" only once resize+read succeeds
+            if (f.type === "receipt") return v === "1"; // same as photo — see below
             if (f.type === "video") return /^https:\/\//.test(v); // hidden input holds the Cloudinary URL once upload succeeds
             if (f.type === "select" && f.options) return f.options.indexOf(v) > -1;
             if (f.type === "checkbox") return v === "Yes" || v === "No";
@@ -2493,6 +2500,35 @@
                 })
                 .catch(() => {
                   photoBase64Data_ = "";
+                  hiddenInput.value = "";
+                  preview.style.display = "none";
+                  fileInput.value = "";
+                  validateField(f.key);
+                });
+            });
+          } else if (f.type === "receipt") {
+            const fileInput = fieldEl.querySelector(".receipt-file-input");
+            const hiddenInput = fieldEl.querySelector('input[type="hidden"]');
+            const preview = fieldEl.querySelector(".receipt-preview");
+            fileInput.addEventListener("change", () => {
+              const file = fileInput.files[0];
+              if (!file) {
+                receiptBase64Data_ = "";
+                hiddenInput.value = "";
+                preview.style.display = "none";
+                validateField(f.key);
+                return;
+              }
+              resizeImageToBase64_(file)
+                .then(dataUrl => {
+                  receiptBase64Data_ = dataUrl;
+                  hiddenInput.value = "1";
+                  preview.src = dataUrl;
+                  preview.style.display = "block";
+                  validateField(f.key);
+                })
+                .catch(() => {
+                  receiptBase64Data_ = "";
                   hiddenInput.value = "";
                   preview.style.display = "none";
                   fileInput.value = "";
@@ -2718,6 +2754,10 @@
           data.photoBase64 = photoBase64Data_ || "";
           return;
         }
+        if (DYNAMIC_FIELD_TYPES[key] === "receipt") {
+          data.receiptBase64 = receiptBase64Data_ || "";
+          return;
+        }
         if (DYNAMIC_FIELD_TYPES[key] === "video") {
           data.videoUrl = getFieldValue(key).trim(); // already a Cloudinary URL by now, or ""
           return;
@@ -2750,6 +2790,7 @@
       if (key === "graduate" || key === "hasJob") return { text: raw === "Yes" ? t("yes") : t("no"), empty: false };
       if (DYNAMIC_FIELD_TYPES[key] === "checkbox") return { text: raw === "Yes" ? t("yes") : t("no"), empty: false };
       if (DYNAMIC_FIELD_TYPES[key] === "photo") return { text: "تم اختيار صورة ✓", empty: false };
+      if (DYNAMIC_FIELD_TYPES[key] === "receipt") return { text: "تم اختيار الإيصال ✓", empty: false };
       if (DYNAMIC_FIELD_TYPES[key] === "video") return { text: "تم رفع الفيديو ✓", empty: false };
       return { text: raw, empty: false };
     }
