@@ -2875,6 +2875,12 @@ function rowToMember_(headers, row) {
     role: get("Role in Entity"),
     faculty: get("Faculty"),
     photoUrl: get("Photo URL"),
+    // "" when the sheet has no Payment Status column at all (this form
+    // never turned on the receipt-upload field) — hasPaymentField lets the
+    // check-in scanner tell that apart from "column exists but still blank",
+    // so it only ever shows a payment note for forms actually using it.
+    paymentStatus: get("Payment Status"),
+    hasPaymentField: headers.indexOf("Payment Status") > -1,
   };
 }
 
