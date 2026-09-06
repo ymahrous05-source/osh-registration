@@ -1569,6 +1569,14 @@
               <label for="cfgConfirmEmailBody">نص إيميل التأكيد (سيب فاضي = النص الافتراضي)</label>
               <textarea id="cfgConfirmEmailBody" rows="5" placeholder="استخدم {{name}} للاسم و{{membershipNo}} لرقم العضوية"></textarea>
             </div>
+            <div class="settings-field">
+              <label for="cfgPaymentConfirmedEmailSubject">عنوان إيميل تأكيد الدفع (سيب فاضي = النص الافتراضي)</label>
+              <input type="text" id="cfgPaymentConfirmedEmailSubject" placeholder="مثال: تأكيد استلام الدفع — حدث كذا">
+            </div>
+            <div class="settings-field">
+              <label for="cfgPaymentConfirmedEmailBody">نص إيميل تأكيد الدفع — بيتبعت لما تدوس "✅ تأكيد الدفع" في تفاصيل أي عضو (سيب فاضي = النص الافتراضي)</label>
+              <textarea id="cfgPaymentConfirmedEmailBody" rows="5" placeholder="استخدم {{name}} للاسم و{{membershipNo}} لرقم العضوية"></textarea>
+            </div>
             <div class="settings-actions">
               <button type="button" class="settings-btn primary" id="saveConfigBtn">حفظ الإعدادات</button>
               <button type="button" class="settings-btn danger" id="newCycleBtn">ابدأ دورة تسجيل جديدة (شيت
@@ -2590,7 +2598,7 @@
               if (res.status !== "success") throw new Error(res.message || "error");
               isConfirmed = res.paymentStatus === "تم التأكيد ✓";
               row[COL.paymentStatus] = res.paymentStatus;
-              toast(isConfirmed ? "اتأكد الدفع ✓" : "اتلغى التأكيد");
+              toast(isConfirmed ? (res.emailSent ? "اتأكد الدفع ✓ وبعتنا إيميل تأكيد" : "اتأكد الدفع ✓ (من غير إيميل — تأكد الإيميل موجود)") : "اتلغى التأكيد");
               payBtn.textContent = labelFor(isConfirmed);
               payBtn.disabled = false;
             })
@@ -2701,6 +2709,8 @@
           document.getElementById("cfgMaxRegistrations").value = cfg.maxRegistrations ? String(cfg.maxRegistrations) : "";
           document.getElementById("cfgConfirmEmailSubject").value = cfg.confirmEmailSubject || "";
           document.getElementById("cfgConfirmEmailBody").value = cfg.confirmEmailBody || "";
+          document.getElementById("cfgPaymentConfirmedEmailSubject").value = cfg.paymentConfirmedEmailSubject || "";
+          document.getElementById("cfgPaymentConfirmedEmailBody").value = cfg.paymentConfirmedEmailBody || "";
           const preview = document.getElementById("logoPreview");
           preview.src = cfg.logoUrl || "icon.svg";
 
@@ -3390,6 +3400,8 @@
         maxRegistrations: Math.max(0, Number(document.getElementById("cfgMaxRegistrations").value) || 0),
         confirmEmailSubject: document.getElementById("cfgConfirmEmailSubject").value.trim(),
         confirmEmailBody: document.getElementById("cfgConfirmEmailBody").value.trim(),
+        paymentConfirmedEmailSubject: document.getElementById("cfgPaymentConfirmedEmailSubject").value.trim(),
+        paymentConfirmedEmailBody: document.getElementById("cfgPaymentConfirmedEmailBody").value.trim(),
         sendCertAuto: document.getElementById("cfgSendCertAuto").checked,
         // Always sent (even from the other save buttons on this tab) so this
         // list never gets silently overwritten by an unrelated save — it just
