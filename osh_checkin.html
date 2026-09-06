@@ -196,6 +196,7 @@
     #result { display: none; border-radius: 16px; padding: 16px; margin-top: 4px; }
     #result.ok { background: #eef8ef; border: 1.5px solid #bfe6c4; }
     #result.already { background: #fff8e6; border: 1.5px solid #f0dca0; }
+    #result.warn { background: #fff8e6; border: 1.5px solid #f0dca0; }
     #result.bad { background: #fdecea; border: 1.5px solid #f3c2bd; }
     #result.info { background: #eef3fb; border: 1.5px solid #c6d7f2; }
 
@@ -206,6 +207,7 @@
     .result-status { font-size: 13px; font-weight: 700; margin-top: 6px; }
     #result.ok .result-status { color: var(--dys-green-dark); }
     #result.already .result-status { color: var(--dys-warn); }
+    #result.warn .result-status { color: var(--dys-warn); }
     #result.bad .result-status { color: var(--dys-error); }
 
     .foot {
@@ -355,6 +357,10 @@
           if (navigator.vibrate) navigator.vibrate(80);
         } else if (cls === "already") {
           beep_(600, 170, "sine", 0, 0.24);
+          if (navigator.vibrate) navigator.vibrate([60, 60, 60]);
+        } else if (cls === "warn") {
+          beep_(600, 170, "sine", 0, 0.24);
+          beep_(600, 170, "sine", 220, 0.24);
           if (navigator.vibrate) navigator.vibrate([60, 60, 60]);
         } else if (cls === "bad") {
           beep_(190, 220, "square", 0, 0.2);
@@ -624,23 +630,36 @@
         }
         const m = res.member || {};
         const meta = [m.role, m.faculty, m.membershipNo].filter(Boolean).join(" · ");
+        // Only shown for forms that actually use the payment-receipt field —
+        // hasPaymentField tells that apart from "column exists but blank".
+        const paymentNote = m.hasPaymentField
+          ? (m.paymentStatus === "تم التأكيد ✓" ? "💳 الدفع مؤكد" : "⚠️ الدفع لسه مش متأكد")
+          : "";
 
         if (verifyOnly) {
           const already = !!res.checkedInAt;
+          const baseStatus = already ? `اتسجل حضوره الساعة ${fmtTime(res.checkedInAt)}` : "لسه ماسجّلش حضور — دا تحقق بس، من غير تسجيل";
           showResult(already ? "already" : "info", already ? "✅" : "ℹ️", m.name || "—", meta,
-            already ? `اتسجل حضوره الساعة ${fmtTime(res.checkedInAt)}` : "لسه ماسجّلش حضور — دا تحقق بس، من غير تسجيل");
+            paymentNote ? `${baseStatus} — ${paymentNote}` : baseStatus);
           return;
         }
 
         if (res.status === "already") {
-          showResult("already", "⚠️", m.name || "—", meta, `مسجّل حضور بالفعل من الساعة ${fmtTime(res.checkedInAt)}`);
+          const baseStatus = `مسجّل حضور بالفعل من الساعة ${fmtTime(res.checkedInAt)}`;
+          showResult("already", "⚠️", m.name || "—", meta, paymentNote ? `${baseStatus} — ${paymentNote}` : baseStatus);
           return;
         }
 
         // status === "success" — brand new check-in
         sessionCheckins += 1;
         sessionCountEl.textContent = `تم تسجيل ${sessionCheckins} من بداية الجلسة`;
-        showResult("ok", "✅", m.name || "—", meta, `اتسجل الحضور الساعة ${fmtTime(res.checkedInAt)}`);
+        const baseStatus = `اتسجل الحضور الساعة ${fmtTime(res.checkedInAt)}`;
+        // Unpaid gets its own "warn" look instead of the normal green "ok" —
+        // this never blocks check-in, just makes an unpaid arrival
+        // impossible to miss for whoever's on the door.
+        const unpaid = m.hasPaymentField && m.paymentStatus !== "تم التأكيد ✓";
+        showResult(unpaid ? "warn" : "ok", unpaid ? "⚠️" : "✅", m.name || "—", meta,
+          paymentNote ? `${baseStatus} — ${paymentNote}` : baseStatus);
       }).catch(() => {
         showResult("bad", "📡", "تعذر الاتصال", "", "اتأكد من الإنترنت وجرب تاني");
       });
