@@ -98,7 +98,7 @@ function sendEmail_(to, subject, body, extraOptions) {
 // provider entirely — the chat still works with just one, or falls back to
 // "use the quick questions instead" if neither is set.
 const GEMINI_API_KEY = "AQ.Ab8RN6JHY6laQxjm-W-_q3-PthfhbDrTfvY9dFth6cOJiwUD8g";
-const GROK_API_KEY = "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";
+const GROK_API_KEY = "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";
 
 // Simple daily message cap (shared across all forms) so a misconfigured
 // widget or a bored visitor can't run up an unexpected API bill overnight.
@@ -209,7 +209,7 @@ const HEADERS = [
   "Role in Entity",   // ← this is the "committee" field from the form
   "Has Job",
   "Current Job",
-].concat(EXTRA_HEADERS).concat([CUSTOM_FIELDS_HEADER]).concat(["Photo URL", "Video URL", "Checked In At", "Receipt URL", "Payment Status"]);
+].concat(EXTRA_HEADERS).concat([CUSTOM_FIELDS_HEADER]).concat(["Photo URL", "Video URL", "Checked In At", "Receipt URL", "Payment Status", "Group Offer"]);
 
 const MIN_FILL_MS = 2500; // mirrors the frontend's own MIN_FILL_MS anti-bot check
 const MEMBERSHIP_PREFIX = "OSH";
@@ -337,6 +337,7 @@ function doPost(e) {
       "sendCertificate", "sendCertificatesBulk", "sendTestCertificate",
       "resendConfirmationEmail",
       "confirmPayment",
+      "confirmGroupPayment",
       "saveFieldConfig",
       "listAdminAccounts", "addAdminAccount", "removeAdminAccount", "reviewAccess", "updateAccountPermissions",
       "exportExcel", "getActivityLog",
@@ -505,7 +506,13 @@ function handleSaveFieldConfig_(payload) {
     PropertiesService.getScriptProperties().setProperty(propKey_("SECTION_LABELS", formId), JSON.stringify(fieldSections));
   }
 
-  return jsonOutput_({ status: "success", fieldConfig: sanitized, customFields });
+  let groupTiers = getGroupTiers_(formId);
+  if (Array.isArray(payload.groupTiers)) {
+    groupTiers = payload.groupTiers.map(sanitizeGroupTier_).filter(Boolean);
+    saveGroupTiers_(groupTiers, formId);
+  }
+
+  return jsonOutput_({ status: "success", fieldConfig: sanitized, customFields, groupTiers });
 }
 
 // Per-form overrides of the FIELD_SECTIONS default headings (personal,
@@ -570,6 +577,30 @@ function getCustomFields_(formId) {
     props.setProperty(seedKey, "1");
   }
 
+  // Second, independent one-time seed — a "group code" field for
+  // group/bundle offers ("عرض الصحاب", "الستة مع بعض", ...). Everyone
+  // registering together agrees on and types the SAME code (their own
+  // choice — a name, a number, anything); handleConfirmGroupPayment_ below
+  // then confirms payment for every registrant sharing that exact code in
+  // one click, instead of the admin hunting down each group member
+  // one-by-one from a free-text "names of your friends" field. Optional
+  // (not required — most registrants aren't part of a group offer), and
+  // guarded by its own separate marker so it seeds independently of the
+  // volunteer question above.
+  const groupCodeSeedKey = propKey_("SEEDED_GROUP_CODE_FIELD_V1", formId);
+  if (!props.getProperty(groupCodeSeedKey)) {
+    arr = arr.concat([{
+      key: "c_groupcode",
+      label: "كود المجموعة (لو مسجل ضمن عرض جماعة — اتفقوا كلكم على نفس الكود)",
+      type: "text",
+      required: false,
+      enabled: true,
+      order: arr.length,
+    }]);
+    saveCustomFields_(arr, formId);
+    props.setProperty(groupCodeSeedKey, "1");
+  }
+
   return arr;
 }
 
@@ -578,6 +609,46 @@ function saveCustomFields_(fields, formId) {
 }
 
 const CUSTOM_FIELD_TYPES = ["text", "textarea", "number", "date", "select", "checkbox"];
+
+// ---------------------------------------------------------------------------
+// Group/bundle offer tiers ("عرض الصحاب", "عرض الستة", ...) — optional,
+// admin-defined from the dashboard. When a form has at least one tier
+// configured, the public form shows a "سجّلت إزاي؟" choice; picking a tier
+// with size > 1 dynamically asks for (size - 1) more people's name + email
+// right there in the SAME submission — see collectGroupMembers_ in
+// dys_form.html. handleSubmit_ then creates one extra row per named friend
+// automatically, gives each their own membership number + confirmation
+// email + QR, and stamps everyone (the submitter included) with the SAME
+// auto-generated "c_groupcode" custom-field value, so
+// handleConfirmGroupPayment_ above can confirm the whole group's payment in
+// one click once it's actually paid. This is the "everyone in one go"
+// path — the manual "c_groupcode" text field (seeded separately in
+// getCustomFields_) still exists for the OTHER case: a group whose members
+// each fill out the form separately but agree on a shared code themselves.
+function getGroupTiers_(formId) {
+  const raw = PropertiesService.getScriptProperties().getProperty(propKey_("GROUP_TIERS", formId));
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveGroupTiers_(tiers, formId) {
+  PropertiesService.getScriptProperties().setProperty(propKey_("GROUP_TIERS", formId), JSON.stringify(tiers));
+}
+
+// size is capped at 20 — a sane ceiling against a typo like "200" silently
+// asking every registrant to fill in 199 friends' details.
+function sanitizeGroupTier_(t) {
+  const label = String((t && t.label) || "").trim();
+  if (!label) return null;
+  const size = Math.max(1, Math.min(20, parseInt(t && t.size, 10) || 1));
+  const id = (t && t.id && /^gt_[a-z0-9]+$/.test(t.id)) ? t.id : "gt_" + Utilities.getUuid().replace(/-/g, "").slice(0, 8);
+  return { id, label, size };
+}
 
 // ---------------------------------------------------------------------------
 // "Success screen" actions — the buttons shown to a registrant right after
@@ -597,11 +668,18 @@ const CUSTOM_FIELD_TYPES = ["text", "textarea", "number", "date", "select", "che
 //   instagram      — Instagram profile link.
 //   email          — mailto: link (frontend prefixes "mailto:" automatically
 //                     — store just the bare address here).
+//   wallet_copy    — a button showing a wallet/payment app name (e.g.
+//                     "فودافون كاش") that copies its phone number to the
+//                     clipboard on tap — NOT a link/deep-link, since none of
+//                     Egypt's payment apps publish an official "open to a
+//                     pre-filled transfer" URL scheme the way WhatsApp does.
+//                     Copy-then-paste-in-their-own-app is the reliable
+//                     alternative. `value` is the bare phone/wallet number.
 //   text           — a plain sentence, no link/button at all (value is
 //                     empty/unused; only `label` is shown, as static text).
 //   link           — any other custom link/button (Drive folder, survey,
 //                     another website, ...).
-const SUCCESS_ACTION_TYPES = ["whatsapp_chat", "whatsapp_group", "telegram", "facebook", "instagram", "email", "text", "link"];
+const SUCCESS_ACTION_TYPES = ["whatsapp_chat", "whatsapp_group", "telegram", "facebook", "instagram", "email", "wallet_copy", "text", "link"];
 
 function getSuccessActions_(formId) {
   const raw = PropertiesService.getScriptProperties().getProperty(propKey_("SUCCESS_ACTIONS", formId));
@@ -735,12 +813,16 @@ function callGemini_(systemPrompt, userMessage, history) {
         }),
       }
     );
-    if (res.getResponseCode() !== 200) return null;
+    if (res.getResponseCode() !== 200) {
+      console.error("Gemini call failed:", res.getResponseCode(), res.getContentText().slice(0, 500));
+      return null;
+    }
     const data = JSON.parse(res.getContentText());
     const parts = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
     const text = parts && parts[0] && parts[0].text;
     return text ? text.trim() : null;
   } catch (e) {
+    console.error("Gemini call threw:", e);
     return null;
   }
 }
@@ -758,22 +840,57 @@ function callGrok_(systemPrompt, userMessage, history) {
     // just works, instead of silently failing when they don't match.
     const isGroq = GROK_API_KEY.indexOf("gsk_") === 0;
     const endpoint = isGroq ? "https://api.groq.com/openai/v1/chat/completions" : "https://api.x.ai/v1/chat/completions";
-       // llama-3.3-70b-versatile was decommissioned by Groq on 16 Aug 2026 —
+    // llama-3.3-70b-versatile was decommissioned by Groq on 16 Aug 2026 —
     // this is Groq's own recommended replacement.
     const model = isGroq ? "openai/gpt-oss-120b" : "grok-beta";
+
+    // gpt-oss-120b is a REASONING model — it spends completion tokens on
+    // invisible chain-of-thought BEFORE writing the visible answer, and
+    // "max_tokens" is deprecated on Groq in favor of "max_completion_tokens"
+    // (the old name still works as an alias, but doesn't fix the real
+    // issue). A low budget like 400 routinely gets entirely eaten by
+    // reasoning for this model, leaving message.content = "" with
+    // finish_reason "length" — a normal HTTP 200, so it looks like nothing
+    // is wrong, but this function then (correctly) treats that empty string
+    // as "no answer" and returns null, which is exactly what made the
+    // assistant look totally dead even with a perfectly valid key.
+    // reasoning_effort: "low" keeps that invisible overhead small (this is
+    // a short FAQ-style assistant, not a task that benefits from deep
+    // reasoning), and the higher budget below leaves real headroom either
+    // way. xAI's grok-beta doesn't support either param, so both are Groq-only.
+    const payload = { model, messages, temperature: 0.4 };
+    if (isGroq) {
+      payload.max_completion_tokens = 800;
+      payload.reasoning_effort = "low";
+    } else {
+      payload.max_tokens = 400;
+    }
 
     const res = UrlFetchApp.fetch(endpoint, {
       method: "post",
       contentType: "application/json",
       muteHttpExceptions: true,
       headers: { Authorization: "Bearer " + GROK_API_KEY },
-      payload: JSON.stringify({ model, messages, temperature: 0.4, max_tokens: 400 }),
+      payload: JSON.stringify(payload),
     });
-    if (res.getResponseCode() !== 200) return null;
+    if (res.getResponseCode() !== 200) {
+      console.error("Groq/xAI call failed:", res.getResponseCode(), res.getContentText().slice(0, 500));
+      return null;
+    }
     const data = JSON.parse(res.getContentText());
     const text = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-    return text ? text.trim() : null;
+    if (!text) {
+      // HTTP 200 but empty content — almost always the reasoning-budget
+      // issue described above (finish_reason "length" with nothing left for
+      // the visible answer). Logged distinctly from a real HTTP failure so
+      // this is diagnosable at a glance instead of looking identical to a
+      // dead API key.
+      console.error("Groq/xAI returned empty content:", JSON.stringify(data).slice(0, 500));
+      return null;
+    }
+    return text.trim();
   } catch (e) {
+    console.error("Groq/xAI call threw:", e);
     return null;
   }
 }
@@ -945,6 +1062,7 @@ function handlePublicConfig_(e) {
     fieldDefs: cfg.fieldDefs,
     fieldSections: cfg.fieldSections,
     customFields: cfg.customFields,
+    groupTiers: cfg.groupTiers,
     // Public form only ever needs the ENABLED buttons — disabled ones stay
     // hidden from anyone inspecting the public endpoint, not just from the UI.
     successActions: (cfg.successActions || []).filter(a => a.enabled !== false),
@@ -1126,7 +1244,70 @@ function handleDiagnostics_(e) {
     report.firestoreMirror = "بترمي خطأ: " + String(err);
   }
 
+  // 9) AI assistant (the "🤖 مساعد التسجيل" widget on the form) — a real
+  // one-token test call to each configured provider, so a failure here shows
+  // the ACTUAL reason (bad/expired key, rate limit, decommissioned model...)
+  // instead of just the generic "المساعد مش متاح دلوقتي" the widget itself
+  // shows to registrants. Unlike callGemini_/callGrok_ (which must stay
+  // silent — a chat widget failing shouldn't ever throw noisy errors at a
+  // registrant), this deliberately surfaces the raw HTTP status + response
+  // body for whichever provider(s) are configured.
+  report.aiProviders = {};
+  if (aiConfigured_(GEMINI_API_KEY)) {
+    report.aiProviders.gemini = testAiProviderRaw_("gemini");
+  } else {
+    report.aiProviders.gemini = "مش متعدّد (GEMINI_API_KEY لسه فاضي/PASTE_YOUR...)";
+  }
+  if (aiConfigured_(GROK_API_KEY)) {
+    report.aiProviders.groqOrXai = testAiProviderRaw_("groq");
+  } else {
+    report.aiProviders.groqOrXai = "مش متعدّد (GROK_API_KEY لسه فاضي/PASTE_YOUR...)";
+  }
+
   return jsonOutput_({ status: "success", report });
+}
+
+// Bare-bones live test call for handleDiagnostics_ above — deliberately
+// bypasses callGemini_/callGrok_'s error-swallowing so the real HTTP status
+// and response body come back as a readable string.
+function testAiProviderRaw_(which) {
+  try {
+    if (which === "gemini") {
+      const res = UrlFetchApp.fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent",
+        {
+          method: "post",
+          contentType: "application/json",
+          muteHttpExceptions: true,
+          headers: { "x-goog-api-key": GEMINI_API_KEY },
+          payload: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "ping" }] }], generationConfig: { maxOutputTokens: 5 } }),
+        }
+      );
+      const code = res.getResponseCode();
+      return code === 200 ? "شغالة ✓" : `فشلت (HTTP ${code}): ${res.getContentText().slice(0, 300)}`;
+    }
+    const isGroq = GROK_API_KEY.indexOf("gsk_") === 0;
+    const endpoint = isGroq ? "https://api.groq.com/openai/v1/chat/completions" : "https://api.x.ai/v1/chat/completions";
+    const model = isGroq ? "openai/gpt-oss-120b" : "grok-beta";
+    const payload = { model, messages: [{ role: "user", content: "ping" }] };
+    if (isGroq) { payload.max_completion_tokens = 800; payload.reasoning_effort = "low"; }
+    else { payload.max_tokens = 5; }
+    const res = UrlFetchApp.fetch(endpoint, {
+      method: "post",
+      contentType: "application/json",
+      muteHttpExceptions: true,
+      headers: { Authorization: "Bearer " + GROK_API_KEY },
+      payload: JSON.stringify(payload),
+    });
+    const code = res.getResponseCode();
+    if (code !== 200) return `فشلت (HTTP ${code}): ${res.getContentText().slice(0, 300)}`;
+    const data = JSON.parse(res.getContentText());
+    const text = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    if (!text) return `HTTP 200 بس من غير رد فعلي (finish_reason: ${data.choices && data.choices[0] && data.choices[0].finish_reason}) — ${JSON.stringify(data).slice(0, 300)}`;
+    return `شغالة ✓ (${isGroq ? "Groq" : "xAI"}, موديل ${model})`;
+  } catch (err) {
+    return "استثناء: " + String(err);
+  }
 }
 
 
@@ -1289,10 +1470,69 @@ function handleSubmit_(payload) {
     if (fc.receiptPhoto && fc.receiptPhoto.enabled && payload.receiptBase64) {
       payload.receiptUrl = uploadPaymentReceipt_(payload.receiptBase64);
     }
+
+    // Group/bundle offer ("عرض الصحاب"...) — payload.groupMembers is
+    // [{name, email}, ...], one entry per extra person the submitter typed
+    // in (see collectGroupMembers_ in dys_form.html). The submitter's OWN
+    // membership number becomes the shared group code, stamped onto their
+    // own row AND every friend's row below — this is what lets
+    // handleConfirmGroupPayment_ confirm the whole group in one click later.
+    const groupMembers = Array.isArray(payload.groupMembers) ? payload.groupMembers : [];
+    const groupTier = groupMembers.length
+      ? getGroupTiers_(formId).find(t => t.id === payload.groupTierId)
+      : null;
+    if (groupMembers.length) {
+      payload.customFields = payload.customFields || {};
+      payload.customFields.c_groupcode = membershipNo;
+      // Stored as a real "Group Offer" column (see buildRow_/HEADERS) so
+      // the sheet itself shows which offer someone took without having to
+      // cross-reference GROUP_TIERS — falls back to a generic label if the
+      // tier was renamed/deleted from Settings after this person registered.
+      payload.groupOfferLabel = groupTier ? groupTier.label : "عرض جماعة";
+    }
+
     const sheet = getSheet_(formId);
     const rowValues = buildRow_(payload, membershipNo);
     sheet.appendRow(rowValues);
     pushToFirestore_(membershipNo, rowValues); // best-effort mirror — never blocks registration
+
+    // Each named friend gets their OWN real row/membership number/QR/
+    // confirmation email — exactly like a normal registration, just built
+    // from the two things actually collected (name + email) instead of the
+    // full form. Silently skips any entry missing a name or a validly
+    // shaped email (the frontend's validateGroupMembers_ should already
+    // have caught that before submit) rather than failing the whole
+    // submission over one bad friend entry — the submitter's own
+    // registration must never be put at risk by a mistake in a friend's
+    // details. Also skips a friend email that exactly matches the
+    // submitter's own, or an EARLIER friend's, in this same submission —
+    // two rows sharing one inbox would otherwise both silently compete for
+    // the same confirmation/QR/payment emails.
+    const psIdx = HEADERS.indexOf("Payment Status");
+    const usedEmails = new Set([String(payload.email || "").trim().toLowerCase()].filter(Boolean));
+    let groupMembersRegistered = 0;
+    groupMembers.forEach(member => {
+      const friendName = String((member && member.name) || "").trim();
+      const friendEmail = String((member && member.email) || "").trim();
+      if (!friendName || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(friendEmail)) return;
+      const emailKey = friendEmail.toLowerCase();
+      if (usedEmails.has(emailKey)) return;
+      usedEmails.add(emailKey);
+
+      const friendMembershipNo = generateMembershipNumber_(cfg.membershipPrefix);
+      const friendPayload = {
+        name: friendName, email: friendEmail,
+        customFields: { c_groupcode: membershipNo },
+        groupOfferLabel: payload.groupOfferLabel,
+      };
+      const friendRow = buildRow_(friendPayload, friendMembershipNo);
+      if (psIdx > -1) friendRow[psIdx] = "قيد المراجعة"; // same "awaiting the group's payment" status as the submitter's own row
+
+      sheet.appendRow(friendRow);
+      pushToFirestore_(friendMembershipNo, friendRow);
+      queueConfirmationEmail_(friendPayload, friendMembershipNo, cfg);
+      groupMembersRegistered += 1;
+    });
 
     // ---- 6) confirmation email (best-effort — never fails the submission) ----
     // Queued to go out a couple of seconds AFTER this response instead of
@@ -1313,7 +1553,7 @@ function handleSubmit_(payload) {
       certificateSent = sendCertificateEmail_(payload, membershipNo, formId);
     }
 
-    return jsonOutput_({ status: "success", membershipNo, emailSent, certificateSent });
+    return jsonOutput_({ status: "success", membershipNo, emailSent, certificateSent, groupMembersRegistered });
   } finally {
     lock.releaseLock();
   }
@@ -1677,12 +1917,15 @@ function getRegConfig_(formId) {
     fieldLabels: buildFieldLabelOverrides_(formId),
     fieldSections: getSectionLabels_(formId),
     customFields: getCustomFields_(formId),
+    groupTiers: getGroupTiers_(formId),
     successActions: getSuccessActions_(formId),
     membershipPrefix: props.getProperty(k("MEMBERSHIP_PREFIX")) || MEMBERSHIP_PREFIX,
     // Custom confirmation email — falls back to the built-in generic text
     // (see sendConfirmationEmail_) when a form never set its own.
     confirmEmailSubject: props.getProperty(k("CONFIRM_EMAIL_SUBJECT")) || "",
     confirmEmailBody: props.getProperty(k("CONFIRM_EMAIL_BODY")) || "",
+    paymentConfirmedEmailSubject: props.getProperty(k("PAYMENT_CONFIRMED_EMAIL_SUBJECT")) || "",
+    paymentConfirmedEmailBody: props.getProperty(k("PAYMENT_CONFIRMED_EMAIL_BODY")) || "",
     archived: !!(getFormsRegistry_().find(f => f.id === formId) || {}).archived,
   };
 }
@@ -1789,6 +2032,7 @@ function describeActionForLog_(payload) {
     case "sendTestCertificate": return `بعت شهادة تجريبية لـ ${payload.testEmail || ""}`;
     case "resendConfirmationEmail": return `أعاد إرسال إيميل التأكيد (${payload.nationalId || ""})`;
     case "confirmPayment": return `${payload.confirmed ? "أكّد" : "ألغى تأكيد"} دفع (${payload.membershipNo || ""})`;
+    case "confirmGroupPayment": return `${payload.confirmed ? "أكّد" : "ألغى تأكيد"} دفع مجموعة كاملة (كود: ${payload.groupCode || ""})`;
     case "saveFieldConfig": return "عدّل إعدادات حقول الاستمارة";
     case "listAdminAccounts": return "شاف قائمة الحسابات";
     case "addAdminAccount": return `أضاف/عدّل حساب: ${payload.name || ""}`;
@@ -1879,6 +2123,7 @@ const ACTION_PERMISSIONS = {
   sendTestCertificate: "manageCertificates",
   resendConfirmationEmail: "manageCertificates",
   confirmPayment: "manageCertificates",
+  confirmGroupPayment: "manageCertificates",
   saveFieldConfig: "manageFields",
   listAdminAccounts: "manageAccounts",
   addAdminAccount: "manageAccounts",
@@ -1910,6 +2155,7 @@ function handleAdminAction_(payload) {
   if (payload.action === "sendTestCertificate") return logAndReturn_(account, payload, handleSendTestCertificate_(payload));
   if (payload.action === "resendConfirmationEmail") return logAndReturn_(account, payload, handleResendConfirmationEmail_(payload));
   if (payload.action === "confirmPayment") return logAndReturn_(account, payload, handleConfirmPayment_(payload));
+  if (payload.action === "confirmGroupPayment") return logAndReturn_(account, payload, handleConfirmGroupPayment_(payload));
   if (payload.action === "saveFieldConfig") return logAndReturn_(account, payload, handleSaveFieldConfig_(payload));
   if (payload.action === "listAdminAccounts") return handleListAdminAccounts_(); // read-only, not logged — keeps the log focused on actual changes
   if (payload.action === "addAdminAccount") return logAndReturn_(account, payload, handleAddAdminAccount_(payload));
@@ -2100,6 +2346,12 @@ function handleSaveConfig_(payload) {
   }
   if (typeof payload.confirmEmailBody !== "undefined") {
     props.setProperty(k("CONFIRM_EMAIL_BODY"), String(payload.confirmEmailBody || "").trim());
+  }
+  if (typeof payload.paymentConfirmedEmailSubject !== "undefined") {
+    props.setProperty(k("PAYMENT_CONFIRMED_EMAIL_SUBJECT"), String(payload.paymentConfirmedEmailSubject || "").trim());
+  }
+  if (typeof payload.paymentConfirmedEmailBody !== "undefined") {
+    props.setProperty(k("PAYMENT_CONFIRMED_EMAIL_BODY"), String(payload.paymentConfirmedEmailBody || "").trim());
   }
 
   // Success-screen buttons ("🎉 خيارات بعد التسجيل"). Only touched when the
@@ -2640,7 +2892,65 @@ function handleConfirmPayment_(payload) {
 
   const newStatus = payload.confirmed ? "تم التأكيد ✓" : "قيد المراجعة";
   sheet.getRange(rowIndex + 1, statusCol + 1).setValue(newStatus);
-  return jsonOutput_({ status: "success", paymentStatus: newStatus });
+
+  // Only email on the way IN to "confirmed" — un-confirming (a correction)
+  // shouldn't notify anyone. Best-effort: an email hiccup here must never
+  // undo/fail the status change the admin just made.
+  let emailSent = false;
+  if (payload.confirmed) {
+    const person = rowToPerson_(headers, data[rowIndex]);
+    if (person.email) emailSent = sendPaymentConfirmedEmail_(person, membershipNo, cfg);
+  }
+  return jsonOutput_({ status: "success", paymentStatus: newStatus, emailSent });
+}
+
+// action=confirmGroupPayment — dashboard's "✅ تأكيد دفع المجموعة كلها"
+// button. Confirms payment for EVERY registrant in this sheet whose
+// "c_groupcode" custom-field answer exactly matches the given code (see the
+// seed in getCustomFields_ above) — one click for a group/bundle offer
+// instead of hunting down each member individually. Exact string match on
+// purpose (not fuzzy name matching): a wrong confirmation here means
+// telling someone their payment went through when it didn't, so this only
+// ever acts on a code the registrants themselves deliberately agreed on and
+// typed identically, never a guess.
+function handleConfirmGroupPayment_(payload) {
+  const formId = String(payload.formId || "").trim();
+  const cfg = getRegConfig_(formId);
+  const sheet = findSheet_(payload.sheet || cfg.activeSheetName);
+  if (!sheet) return jsonOutput_({ status: "error", message: "الشيت مش موجود." });
+
+  const groupCode = String(payload.groupCode || "").trim();
+  if (!groupCode) return jsonOutput_({ status: "error", message: "كود المجموعة مطلوب." });
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0] || [];
+  const customCol = headers.indexOf(CUSTOM_FIELDS_HEADER);
+  if (customCol === -1) return jsonOutput_({ status: "error", message: "مفيش حقول مخصصة في الشيت ده." });
+
+  let statusCol = headers.indexOf("Payment Status");
+  if (statusCol === -1) {
+    healSheetHeaders_(sheet);
+    statusCol = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].indexOf("Payment Status");
+    if (statusCol === -1) return jsonOutput_({ status: "error", message: "تعذر تجهيز عمود حالة الدفع — جرب تاني كمان شوية." });
+  }
+
+  const newStatus = payload.confirmed ? "تم التأكيد ✓" : "قيد المراجعة";
+  let matched = 0, emailsSent = 0;
+  for (let i = 1; i < data.length; i++) {
+    let customData = {};
+    try { customData = JSON.parse(data[i][customCol] || "{}"); } catch (e) { continue; }
+    if (String(customData.c_groupcode || "").trim() !== groupCode) continue;
+
+    matched += 1;
+    sheet.getRange(i + 1, statusCol + 1).setValue(newStatus);
+    if (payload.confirmed) {
+      const person = rowToPerson_(headers, data[i]);
+      if (person.email && sendPaymentConfirmedEmail_(person, person.membershipNo, cfg)) emailsSent += 1;
+    }
+  }
+
+  if (!matched) return jsonOutput_({ status: "error", message: `مفيش حد في الشيت ده كاتب الكود "${groupCode}".` });
+  return jsonOutput_({ status: "success", paymentStatus: newStatus, matched, emailsSent });
 }
 
 
@@ -2779,13 +3089,19 @@ function buildRow_(p, membershipNo) {
   const customJson = JSON.stringify(p.customFields || {});
   // Order after this point: Photo URL, Video URL, Checked In At (always left
   // blank here — only ever set later, by the check-in scanner), Receipt URL,
-  // Payment Status. The "" placeholder is deliberate: appendRow writes
-  // positionally, so anything AFTER a column this function doesn't set (like
-  // "Checked In At") needs an explicit blank of its own, not just omission —
-  // omission only works for trailing columns, and this isn't trailing
-  // anymore now that Receipt URL/Payment Status come after it.
+  // Payment Status, Group Offer. The "" placeholder is deliberate: appendRow
+  // writes positionally, so anything AFTER a column this function doesn't
+  // set (like "Checked In At") needs an explicit blank of its own, not just
+  // omission — omission only works for trailing columns.
+  //
+  // Group Offer: the chosen tier's LABEL (e.g. "عرض الصحاب (٣ أفراد)"), not
+  // its id — so the sheet itself is readable at a glance without needing to
+  // cross-reference GROUP_TIERS. Set by handleSubmit_ for both the
+  // submitter's own row and every friend's row it creates alongside it (see
+  // groupMembers handling there) — a plain registrant with no group tier
+  // just gets "" here, same as any other unused optional field.
   const paymentStatus = str(p.receiptUrl) ? "قيد المراجعة" : "";
-  return legacyRow.concat(extraRow).concat([customJson]).concat([str(p.photoUrl), str(p.videoUrl), "", str(p.receiptUrl), paymentStatus]);
+  return legacyRow.concat(extraRow).concat([customJson]).concat([str(p.photoUrl), str(p.videoUrl), "", str(p.receiptUrl), paymentStatus, str(p.groupOfferLabel)]);
 }
 
 function isDuplicateNid_(nationalId, formId) {
@@ -3127,6 +3443,32 @@ function sendConfirmationEmail_(p, membershipNo, cfg) {
     return true;
   } catch (err) {
     console.error("Email send failed:", err);
+    return false;
+  }
+}
+
+// Sent from handleConfirmPayment_ above, only when an admin marks a
+// member's payment as confirmed (never on un-confirm). Same optional
+// subject/body override pattern as sendConfirmationEmail_ — {{name}} and
+// {{membershipNo}} get filled in either way.
+function sendPaymentConfirmedEmail_(p, membershipNo, cfg) {
+  try {
+    if (!p.email) return false;
+    const fill = (s) => s.replace(/\{\{name\}\}/g, p.name || "").replace(/\{\{membershipNo\}\}/g, membershipNo || "");
+    const subject = (cfg && cfg.paymentConfirmedEmailSubject)
+      ? fill(cfg.paymentConfirmedEmailSubject)
+      : "تأكيد استلام الدفع — أسرة صناع الحياة";
+    const bodyText = (cfg && cfg.paymentConfirmedEmailBody)
+      ? fill(cfg.paymentConfirmedEmailBody)
+      : `أهلًا ${p.name}،\n\n` +
+        `بنأكدلك إننا استلمنا دفعتك بنجاح ✅\n` +
+        `رقم عضويتك: ${membershipNo}\n\n` +
+        `شكرًا ليك ومستنينك في الإيفنت!\n\n` +
+        `تحياتنا،\nفريق أسرة صناع الحياة`;
+    sendEmail_(p.email.trim(), subject, bodyText);
+    return true;
+  } catch (err) {
+    console.error("Payment confirmation email failed:", err);
     return false;
   }
 }
@@ -3622,10 +3964,11 @@ function testGroqNow() {
     muteHttpExceptions: true,
     headers: { Authorization: "Bearer " + GROK_API_KEY },
     payload: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-120b", // llama-3.3-70b-versatile was decommissioned 16 Aug 2026
       messages: [{ role: "user", content: "قول أهلاً" }],
       temperature: 0.4,
-      max_tokens: 100,
+      max_completion_tokens: 800, // this model reasons invisibly first — see callGrok_'s comment for why a low max_tokens silently returns empty content
+      reasoning_effort: "low",
     }),
   });
   Logger.log("Status: " + res.getResponseCode());
