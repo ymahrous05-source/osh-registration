@@ -1689,6 +1689,7 @@
                   <option value="facebook">فيسبوك</option>
                   <option value="instagram">إنستجرام</option>
                   <option value="email">إيميل — تواصل عن طريق الإيميل</option>
+                  <option value="wallet_copy">نسخ رقم محفظة (فودافون كاش/إنستاباي/أورنج كاش...)</option>
                   <option value="text">جملة عادية (نص بس، من غير زرار)</option>
                   <option value="link">لينك عام (أي حاجة تانية)</option>
                 </select>
@@ -1720,6 +1721,24 @@
               <input type="text" id="cfgNameLabel" placeholder="مثال: الاسم بالكامل">
             </div>
             <div id="fieldConfigSections"><!-- section groups injected by renderFieldConfigTable() --></div>
+
+            <h4 style="margin:20px 0 6px; font-size:14px; color:#e8f0e8;">🎟️ عروض المجموعات (اختياري)</h4>
+            <p class="hint">لو بتعمل عروض جماعة (زي "عرض الصحاب" أو "عرض الستة"), عرّفهم هنا. أي عرض بحجم أكبر من
+              فرد واحد هيخلّي الاستمارة تطلب اسم وإيميل كل صاحب إضافي في نفس التسجيل — كل واحد فيهم هياخد رقم عضوية
+              وQR وإيميل تأكيد لوحده، وكلهم بيتربطوا تلقائي بكود مجموعة واحد عشان تأكد دفعهم كلهم بزرار واحد بعدين.</p>
+            <div class="mini-table-scroll">
+              <table class="field-config-table" id="groupTiersTable" style="display:none;">
+                <thead><tr><th>اسم العرض</th><th>عدد الأفراد (شامل اللي بيسجّل)</th><th></th></tr></thead>
+                <tbody id="groupTiersBody"></tbody>
+              </table>
+            </div>
+            <div class="settings-field" style="margin-top:8px;">
+              <label for="newGroupTierLabel">اسم عرض جديد</label>
+              <input type="text" id="newGroupTierLabel" placeholder="مثال: عرض الصحاب (٣ أفراد) - ٢٥٠ جنيه">
+              <label for="newGroupTierSize" style="margin-top:6px;">عدد الأفراد (شامل اللي بيسجّل بنفسه)</label>
+              <input type="number" id="newGroupTierSize" min="1" max="20" value="2" style="max-width:100px;">
+            </div>
+            <button type="button" class="settings-btn muted" id="addGroupTierBtn" style="margin-top:6px;">➕ إضافة عرض</button>
 
             <h4 style="margin:20px 0 6px; font-size:14px; color:#e8f0e8;">➕ حقول مخصصة (بالاسم اللي انت عايزه)</h4>
             <p class="hint">مش لاقي الحقل اللي محتاجه في القوائم فوق؟ ضيفه بنفسك هنا — أي اسم وأي نوع، وهيظهر في
@@ -1959,6 +1978,22 @@
       let url = `${SCRIPT_URL}?action=list&password=${encodeURIComponent(password)}${formQS()}`;
       if (sheetName) url += `&sheet=${encodeURIComponent(sheetName)}`;
       url += `&_=${Date.now()}`;
+
+      // Custom-field LABELS (for the row-detail modal + a couple of charts)
+      // via the same public, permission-free endpoint the registration form
+      // itself uses — this way every account, including a plain viewer with
+      // no manageSettings/manageFields, sees readable labels immediately,
+      // without waiting for the Settings tab to ever be opened this session.
+      fetch(`${SCRIPT_URL}?action=publicConfig${formQS()}&_=${Date.now()}`, { cache: "no-store" })
+        .then(r => r.json())
+        .then(res => {
+          if (res.status === "success") {
+            latestCustomFields = res.customFields || [];
+            latestFieldSections = res.fieldSections || {};
+          }
+        })
+        .catch(() => { /* labels just fall back to raw keys — never blocks the real data load above */ });
+
       return fetch(url, { cache: "no-store" })
         .then(r => r.json())
         .then(res => {
@@ -2515,6 +2550,27 @@
               <img src="${escapeHtml(val)}" alt="إيصال الدفع" style="max-width:160px; max-height:200px; border-radius:8px; border:1px solid #33475b; display:block; margin-top:4px;">
             </a></span></div>`;
         }
+        // The "Custom Fields (JSON)" column holds every admin-added custom
+        // field's answer as one JSON blob (see CUSTOM_FIELDS_HEADER in
+        // Code.gs) — showing that raw blob as a single row isn't readable at
+        // a glance (e.g. checking which group/offer someone picked and who
+        // their group-mates are), so this expands it into one normal-looking
+        // row per custom field, using each field's CURRENT label from
+        // latestCustomFields (falls back to its stored key if that field was
+        // since deleted, so old answers are never just silently dropped).
+        if (i === COL.customFieldsJson) {
+          let obj = {};
+          try { obj = JSON.parse(row[i] || "{}"); } catch (e) { obj = {}; }
+          const keys = Object.keys(obj).filter(k => String(obj[k] || "").trim() !== "");
+          if (!keys.length) return `<div class="modal-row"><span class="k">${escapeHtml(h)}</span><span class="v">—</span></div>`;
+          const labelFor = (key) => {
+            const cf = (latestCustomFields || []).find(f => f.key === key);
+            return cf ? cf.label : key;
+          };
+          return keys.map(key =>
+            `<div class="modal-row"><span class="k">${escapeHtml(labelFor(key))}</span><span class="v">${escapeHtml(String(obj[key]))}</span></div>`
+          ).join("");
+        }
         return `<div class="modal-row"><span class="k">${escapeHtml(h)}</span><span class="v">${escapeHtml(val)}${canCopy && val !== "—" ? `<button class="modal-copy" data-copy="${escapeHtml(val)}">نسخ</button>` : ""}</span></div>`;
       }).join("");
       content.querySelectorAll(".modal-copy").forEach(btn => {
@@ -2609,6 +2665,40 @@
             });
         });
         content.appendChild(payBtn);
+      }
+
+      // Group-offer payment confirmation ("عرض الصحاب"/"عرض الستة"...) —
+      // only shown when this specific registrant actually typed a group
+      // code (see the "c_groupcode" seed in getCustomFields_/Code.gs).
+      // Confirms EVERY registrant sharing that exact code in one click,
+      // instead of hunting each one down individually in the table.
+      const groupCode = COL.customFieldsJson > -1 ? getCustomFieldAnswer_(row, "c_groupcode") : "";
+      if (currentPermissions.manageCertificates && COL.paymentStatus > -1 && groupCode) {
+        const groupBtn = document.createElement("button");
+        groupBtn.type = "button";
+        groupBtn.className = "modal-close";
+        groupBtn.style.marginTop = "10px";
+        const groupLabelDefault = `✅ تأكيد دفع المجموعة كلها (كود: ${groupCode})`;
+        groupBtn.textContent = groupLabelDefault;
+        groupBtn.title = "بيأكد الدفع لكل الأعضاء اللي كاتبين نفس الكود ده، مش بس العضو ده";
+        groupBtn.addEventListener("click", () => {
+          groupBtn.disabled = true;
+          groupBtn.textContent = "جاري الحفظ...";
+          postAdmin({ action: "confirmGroupPayment", groupCode, confirmed: true, sheet: currentSheetName || activeSheetNameFromServer })
+            .then(res => {
+              if (res.status !== "success") throw new Error(res.message || "error");
+              toast(`اتأكد الدفع لـ ${res.matched} عضو في المجموعة دي ✓ (${res.emailsSent} إيميل اتبعت)`);
+              groupBtn.textContent = groupLabelDefault;
+              groupBtn.disabled = false;
+              fetchData(currentPassword, currentSheetName).then(() => { populateFilters(); renderAll(); }); // refresh so every affected row's status shows up-to-date
+            })
+            .catch(err => {
+              toast("فشل الحفظ: " + err.message);
+              groupBtn.textContent = groupLabelDefault;
+              groupBtn.disabled = false;
+            });
+        });
+        content.appendChild(groupBtn);
       }
 
       rowModalOverlay.classList.add("show");
@@ -2721,6 +2811,7 @@
 
           document.getElementById("cfgNameLabel").value = (cfg.fieldLabels && cfg.fieldLabels.name) || "";
           renderFieldConfigTable(cfg.fieldConfig || {}, cfg.fieldDefs || {}, cfg.fieldSections || {});
+          renderGroupTiersTable(cfg.groupTiers || []);
           renderCustomFieldsTable(cfg.customFields || []);
           renderSuccessActionsTable(cfg.successActions || []);
         })
@@ -2966,11 +3057,55 @@
       facebook: { placeholder: "لينك صفحة/جروب الفيسبوك", hint: "الصق لينك الصفحة أو الجروب على فيسبوك." },
       instagram: { placeholder: "لينك حساب الإنستجرام", hint: "الصق لينك البروفايل على إنستجرام." },
       email: { placeholder: "الإيميل بس (من غير mailto:)، مثلاً info@osar-hayah.org", hint: "اكتب عنوان الإيميل بس — لما العضو يدوس الزرار هيتفتحله برنامج الإيميل بتاعه موجّه عليك تلقائي." },
+      wallet_copy: { placeholder: "رقم المحفظة (مثلاً 01012345678)", hint: `اكتب اسم المحفظة في خانة "النص" فوق (مثلاً "فودافون كاش" أو "إنستاباي") ورقمها هنا — لما العضو يدوس الزرار، الرقم بينسخله تلقائي عشان يفتح تطبيق المحفظة بنفسه ويلزقه. محدش من شركات المحافظ دي بيوفر رابط رسمي بيفتح التطبيق مباشرة على شاشة تحويل، فده أضمن حل شغال 100%.` },
       link: { placeholder: "أي لينك (https://...)", hint: "أي لينك تاني عايز تظهره كزرار — درايف، فورم، موقع، إلخ." },
       text: { placeholder: "(مش محتاج تكتب حاجة هنا — سيبها فاضية)", hint: `اكتب الجملة اللي عايز تظهرها في خانة "النص" فوق (مثلاً: "شكرًا لتسجيلك، هيتم التواصل معاك خلال 3 أيام عمل") — دي هتظهر كنص عادي تحت الأزرار، من غير أي رابط أو زرار.` },
     };
 
     const CUSTOM_TYPE_LABELS = { text: "نص قصير", textarea: "نص طويل", number: "رقم", date: "تاريخ", select: "قائمة اختيار", checkbox: "نعم / لا" };
+
+    let latestGroupTiers = [];
+    function renderGroupTiersTable(tiers) {
+      latestGroupTiers = tiers;
+      const table = document.getElementById("groupTiersTable");
+      const body = document.getElementById("groupTiersBody");
+      if (!tiers.length) { table.style.display = "none"; body.innerHTML = ""; return; }
+      table.style.display = "";
+      body.innerHTML = tiers.map(t => `
+        <tr data-id="${t.id}">
+          <td><input type="text" class="gt-label" value="${escapeHtml(t.label)}" style="width:100%; box-sizing:border-box;"></td>
+          <td><input type="number" class="gt-size" min="1" max="20" value="${t.size}" style="max-width:80px;"></td>
+          <td><button type="button" class="settings-btn muted remove-group-tier-btn" style="padding:2px 10px; font-size:12px;">حذف</button></td>
+        </tr>`).join("");
+
+      body.querySelectorAll(".remove-group-tier-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.closest("tr").dataset.id;
+          latestGroupTiers = latestGroupTiers.filter(t => t.id !== id);
+          renderGroupTiersTable(latestGroupTiers);
+        });
+      });
+    }
+
+    function collectGroupTiers_() {
+      return Array.from(document.querySelectorAll("#groupTiersBody tr")).map(tr => ({
+        id: tr.dataset.id,
+        label: tr.querySelector(".gt-label").value.trim(),
+        size: Number(tr.querySelector(".gt-size").value) || 1,
+      })).filter(t => t.label);
+    }
+
+    document.getElementById("addGroupTierBtn").addEventListener("click", () => {
+      const labelInput = document.getElementById("newGroupTierLabel");
+      const sizeInput = document.getElementById("newGroupTierSize");
+      const label = labelInput.value.trim();
+      const size = Math.max(1, Math.min(20, Number(sizeInput.value) || 1));
+      if (!label) { toast("اكتب اسم العرض الأول"); return; }
+      latestGroupTiers.push({ id: "_tmp_" + Date.now() + "_" + Math.random().toString(36).slice(2), label, size });
+      renderGroupTiersTable(latestGroupTiers);
+      labelInput.value = "";
+      sizeInput.value = "2";
+    });
 
     function renderCustomFieldsTable(customFields) {
       latestCustomFields = customFields;
@@ -3133,10 +3268,11 @@
       const fields = collectFieldConfig_();
       const customFields = collectCustomFields_();
       const sectionLabels = collectSectionLabels_();
+      const groupTiers = collectGroupTiers_();
       const nameLabel = document.getElementById("cfgNameLabel").value.trim();
       btn.disabled = true;
       setNote("fieldConfigNote", "جاري الحفظ...");
-      postAdmin({ action: "saveFieldConfig", fields, customFields, sectionLabels, nameLabel })
+      postAdmin({ action: "saveFieldConfig", fields, customFields, sectionLabels, groupTiers, nameLabel })
         .then(res => {
           if (res.status !== "success") throw new Error(res.message || "error");
           setNote("fieldConfigNote", "اتحفظت إعدادات الحقول ✓ — سرت مباشرة على استمارة التسجيل", "ok");
