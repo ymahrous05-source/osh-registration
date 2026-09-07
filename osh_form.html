@@ -1011,6 +1011,13 @@
       background: #4B5A72;
     }
 
+    .btn-whatsapp.sa-wallet {
+      background: #8e44ad;
+      border: none;
+      font: inherit;
+      cursor: pointer;
+    }
+
     .sa-text {
       display: block;
       background: transparent;
@@ -1708,7 +1715,7 @@
 
     // Populated from ?action=publicConfig (see loadRegistrationConfig below).
     // Each entry: {id, type, label, value, enabled} — type is one of
-    // "whatsapp_chat" | "whatsapp_group" | "telegram" | "facebook" | "instagram" | "email" | "text" | "link".
+    // "whatsapp_chat" | "whatsapp_group" | "telegram" | "facebook" | "instagram" | "email" | "wallet_copy" | "text" | "link".
     let DYS_SUCCESS_ACTIONS = null; // null = "not loaded yet / backend unreachable", not "empty on purpose"
 
     // Which form/tenant THIS page instance is — read from this page's own
@@ -1962,7 +1969,7 @@
           }
           if (regPhase !== "open") showClosedScreen();
           if (res.fieldConfig) applyFieldConfig_(res.fieldConfig);
-          buildDynamicFieldsStep_(res.fieldConfig || {}, res.fieldDefs || {}, res.fieldSections || {}, res.customFields || []);
+          buildDynamicFieldsStep_(res.fieldConfig || {}, res.fieldDefs || {}, res.fieldSections || {}, res.customFields || [], res.groupTiers || []);
           updateVisibleSteps_();
           // Only enabled entries ever come back from publicConfig (server-side
           // filter), so this is already exactly what should render.
@@ -2397,7 +2404,7 @@
       });
     }
 
-    function buildDynamicFieldsStep_(fieldConfig, fieldDefs, fieldSections, customFields) {
+    function buildDynamicFieldsStep_(fieldConfig, fieldDefs, fieldSections, customFields, groupTiers) {
       const stepEl = document.getElementById("dynamicFieldsStep");
       const star5 = document.getElementById("star5");
 
@@ -2438,7 +2445,99 @@
         html += `<h3 class="dyn-section-title" style="margin:${sectionKey === DYNAMIC_SECTION_ORDER[0] ? "0" : "22px"} 0 4px; font-size:15px;">${escapeHtml(fieldSections[sectionKey] || "")}</h3>`;
         fields.forEach(f => { html += renderDynamicField_(f); });
       });
+
+      // Group/bundle offer ("سجّلت إزاي؟") — a completely separate mechanism
+      // from the sections above (see getGroupTiers_ in Code.gs): a plain
+      // dropdown of admin-defined tiers, and picking one that needs more
+      // than just the submitter dynamically reveals that many "name +
+      // email" blocks right here. Deliberately NOT wired through the
+      // generic DYNAMIC_FIELD_TYPES/validators machinery above — a variable
+      // number of sub-fields depending on a choice doesn't fit that
+      // single-value-per-key model, so this has its own small, self-
+      // contained collection logic in collectAllData() instead.
+      const hasGroupTiers = Array.isArray(groupTiers) && groupTiers.length > 0;
+      if (hasGroupTiers) {
+        anyField = true;
+        html += `<h3 class="dyn-section-title" style="margin:${html ? "22px" : "0"} 0 4px; font-size:15px;">سجّلت إزاي؟</h3>`;
+        html += `<div class="field">
+          <label>اخترت أي عرض؟</label>
+          <select id="groupTierSelect">
+            <option value="">فردي (بدون عرض جماعة)</option>
+            ${groupTiers.map(t => `<option value="${escapeHtml(t.id)}" data-size="${t.size}">${escapeHtml(t.label)}</option>`).join("")}
+          </select>
+          <div id="groupMembersContainer" style="margin-top:10px;"></div>
+        </div>`;
+      }
+
       stepEl.innerHTML = html;
+
+      if (hasGroupTiers) {
+        // Renders (size - 1) "name + email" blocks for a chosen tier — size
+        // counts the submitter themselves, so a tier of 3 asks for 2 more
+        // people here. Switching back to "فردي" (or another tier) simply
+        // rebuilds the container from scratch; nothing previously typed in
+        // is preserved across a tier change — see hint text below.
+        function renderGroupMemberFields_(size) {
+          const container = document.getElementById("groupMembersContainer");
+          if (!container) return;
+          let blocksHtml = "";
+          for (let i = 1; i < size; i++) {
+            blocksHtml += `<div class="group-member-block" style="margin-top:10px; padding-top:10px; border-top:1px dashed #33475b;">
+              <div class="hint" style="margin-bottom:4px;">بيانات صاحبك رقم ${i}</div>
+              <input type="text" class="group-member-name" placeholder="الاسم">
+              <input type="email" class="group-member-email" placeholder="الإيميل — هيوصله تسجيله وQR بتاعه عليه" style="margin-top:6px;">
+            </div>`;
+          }
+          container.innerHTML = blocksHtml;
+          // Clears the red border the moment a value looks valid again,
+          // instead of leaving it stuck until the next "التالي" click.
+          container.querySelectorAll(".group-member-name").forEach(inp => {
+            inp.addEventListener("input", () => { if (inp.value.trim().length >= 3) inp.style.borderColor = ""; });
+          });
+          container.querySelectorAll(".group-member-email").forEach(inp => {
+            inp.addEventListener("input", () => { if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inp.value.trim())) inp.style.borderColor = ""; });
+          });
+        }
+        document.getElementById("groupTierSelect").addEventListener("change", (e) => {
+          const opt = e.target.selectedOptions[0];
+          const size = opt ? Number(opt.dataset.size || 1) : 1;
+          renderGroupMemberFields_(size);
+
+          // The manual "كود المجموعة" custom field (if the admin has it
+          // enabled — see the c_groupcode seed in Code.gs) is for a
+          // DIFFERENT scenario: a group whose members each fill out the
+          // form separately and agree on a shared code themselves. Picking
+          // a real bundled tier here means the backend generates and
+          // stamps that code automatically instead (see handleSubmit_), so
+          // showing an editable "كود المجموعة" box at the same time would
+          // just be confusing — whatever the person types there gets
+          // silently overwritten anyway. Hide it (and clear it, so nothing
+          // stale gets sent) whenever a real group tier is active.
+          const groupCodeField = document.querySelector('[data-key="c_groupcode"]');
+          if (groupCodeField) {
+            // Cache the field's ORIGINAL enabled/disabled state (set by
+            // applyFieldConfig_ from the admin's actual settings) the first
+            // time this runs, so switching back to "فردي" restores it
+            // correctly instead of just always forcing it visible —
+            // dataset.disabled (not just style.display) is what
+            // validateField/collectAllData actually check, so both need to
+            // move together or a required c_groupcode would still block
+            // submission even while hidden.
+            if (groupCodeField.dataset.originalDisabled === undefined) {
+              groupCodeField.dataset.originalDisabled = groupCodeField.dataset.disabled || "0";
+            }
+            if (size > 1) {
+              groupCodeField.style.display = "none";
+              groupCodeField.dataset.disabled = "1";
+              const input = groupCodeField.querySelector("input, textarea, select");
+              if (input) input.value = "";
+            } else {
+              groupCodeField.style.display = "";
+              groupCodeField.dataset.disabled = groupCodeField.dataset.originalDisabled;
+            }
+          }
+        });
+      }
 
       const reviewIdx = reviewGroups.findIndex(g => g.step === 5);
       if (!anyField) {
@@ -2725,6 +2824,39 @@
         }
       });
       if (firstInvalid) firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
+      // Group-member "name + email" blocks (see buildDynamicFieldsStep_)
+      // live on the same step as the dynamic/custom fields but aren't part
+      // of the generic validators[]/[data-key] loop above — they need their
+      // own check so an incomplete friend entry blocks moving on instead of
+      // silently vanishing at submit time (see validateGroupMembers_).
+      if (step === 5 && !validateGroupMembers_()) valid = false;
+      return valid;
+    }
+
+    // Returns true (nothing to check) if no group tier is selected at all.
+    // Otherwise requires EVERY rendered "name + email" block to have a real
+    // name and a validly shaped email — Code.gs silently skips any
+    // incomplete entry rather than failing the whole submission, so this is
+    // the only place that actually stops a half-filled friend block from
+    // quietly turning into "one fewer person registered than the group
+    // offer promised."
+    function validateGroupMembers_() {
+      const select = document.getElementById("groupTierSelect");
+      if (!select || !select.value) return true;
+      const blocks = document.querySelectorAll("#groupMembersContainer .group-member-block");
+      let valid = true;
+      let firstInvalid = null;
+      blocks.forEach(block => {
+        const nameInput = block.querySelector(".group-member-name");
+        const emailInput = block.querySelector(".group-member-email");
+        const nameOk = nameInput.value.trim().length >= 3;
+        const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value.trim());
+        nameInput.style.borderColor = nameOk ? "" : "#c0392b";
+        emailInput.style.borderColor = emailOk ? "" : "#c0392b";
+        if (!nameOk) { valid = false; if (!firstInvalid) firstInvalid = nameInput; }
+        if (!emailOk) { valid = false; if (!firstInvalid) firstInvalid = emailInput; }
+      });
+      if (firstInvalid) firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
       return valid;
     }
 
@@ -2766,6 +2898,20 @@
         if (DYNAMIC_CUSTOM_KEYS[key]) data.customFields[key] = value;
         else data[key] = value;
       });
+
+      // Group members (name + email, however many the chosen group offer
+      // needs — see buildDynamicFieldsStep_'s "سجّلت إزاي؟" block). Only
+      // sent when a real group tier is selected; Code.gs silently skips any
+      // block missing a name or a validly shaped email rather than failing
+      // the whole submission over one incomplete friend entry.
+      const groupTierSelect = document.getElementById("groupTierSelect");
+      if (groupTierSelect && groupTierSelect.value) {
+        data.groupTierId = groupTierSelect.value;
+        data.groupMembers = Array.from(document.querySelectorAll("#groupMembersContainer .group-member-block")).map(block => ({
+          name: block.querySelector(".group-member-name").value.trim(),
+          email: block.querySelector(".group-member-email").value.trim(),
+        })).filter(m => m.name || m.email);
+      }
 
       return data;
     }
@@ -2888,6 +3034,36 @@
           p.className = "sa-text";
           p.textContent = entry.label;
           waContainer.appendChild(p);
+          return;
+        }
+
+        // "wallet_copy" = copies the wallet's phone number to the clipboard
+        // instead of navigating anywhere — none of Egypt's payment apps
+        // publish an official "open to a pre-filled transfer" link the way
+        // WhatsApp does, so copy-then-paste-in-their-own-app is the reliable
+        // alternative. Handled before the generic <a href> logic below since
+        // this needs a <button>, not a link.
+        if (entry.type === "wallet_copy") {
+          if (!entry.value) return;
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "btn-whatsapp sa-wallet";
+          const defaultText = entry.label ? `📋 نسخ رقم ${entry.label}` : "📋 نسخ الرقم";
+          btn.textContent = defaultText;
+          btn.addEventListener("click", () => {
+            const copyText = () => {
+              btn.textContent = "✅ اتنسخ الرقم!";
+              setTimeout(() => { btn.textContent = defaultText; }, 2000);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(entry.value).then(copyText).catch(() => {
+                btn.textContent = entry.value; // clipboard blocked (old browser/no HTTPS) — show the number instead
+              });
+            } else {
+              btn.textContent = entry.value;
+            }
+          });
+          waContainer.appendChild(btn);
           return;
         }
 
