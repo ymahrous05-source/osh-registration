@@ -287,6 +287,7 @@ function doGet(e) {
     if (action === "listCycles") return handleListCycles_(e);
     if (action === "diagnostics") return handleDiagnostics_(e);
     if (action === "verifyMember") return handleVerifyMember_(e); // event check-in scanner — read-only lookup
+    if (action === "checkMyStatus") return handleCheckMyStatus_(e); // public status page — read-only, requires membership no + email/phone together
     if (action === "listForms") return handleListForms_(e);
     if (action === "approveAccess") return handleReviewAccess_(e, true);
     if (action === "rejectAccess") return handleReviewAccess_(e, false);
@@ -338,6 +339,7 @@ function doPost(e) {
       "resendConfirmationEmail",
       "confirmPayment",
       "confirmGroupPayment",
+      "sendPaymentReminders",
       "saveFieldConfig",
       "listAdminAccounts", "addAdminAccount", "removeAdminAccount", "reviewAccess", "updateAccountPermissions",
       "exportExcel", "getActivityLog",
@@ -533,6 +535,25 @@ function getSectionLabelOverrides_(formId) {
 
 function getSectionLabels_(formId) {
   return Object.assign({}, FIELD_SECTIONS, getSectionLabelOverrides_(formId));
+}
+
+// Free-form overrides for ANY text key in the form's i18n dictionary
+// (dys_form.html's I18N.ar) — error/validation messages, button labels,
+// anything not already covered by its own dedicated setting (formTitle,
+// trustNote, formSubtitle, fieldLabels...). Stored as a flat {key: text}
+// object; a key not present here just uses the form's built-in default. No
+// validation of WHICH keys are real — an unrecognized key is simply never
+// looked up by anything and has no effect, so a typo here can't break
+// anything, just silently do nothing.
+function getI18nOverrides_(formId) {
+  const raw = PropertiesService.getScriptProperties().getProperty(propKey_("I18N_OVERRIDES", formId));
+  if (!raw) return {};
+  try {
+    const obj = JSON.parse(raw);
+    return (obj && typeof obj === "object" && !Array.isArray(obj)) ? obj : {};
+  } catch (e) {
+    return {};
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1054,6 +1075,7 @@ function handlePublicConfig_(e) {
     trustNote: cfg.trustNote,
     formSubtitle: cfg.formSubtitle,
     fieldLabels: cfg.fieldLabels,
+    i18nOverrides: cfg.i18nOverrides,
     logoUrl: cfg.logoUrl,
     startAt: cfg.startAt,
     endAt: cfg.endAt,
@@ -1900,6 +1922,11 @@ function getRegConfig_(formId) {
     trustNote: props.getProperty(k("TRUST_NOTE")) || "",
     // Custom subtitle line right under the form's title — same fallback rule.
     formSubtitle: props.getProperty(k("FORM_SUBTITLE")) || "",
+    // Free-form overrides for ANY other text in the form's i18n dictionary —
+    // error/validation messages, button labels, anything with a data-i18n
+    // key that isn't already covered by its own dedicated setting above.
+    // See getI18nOverrides_ below and the "نصوص متقدمة" settings card.
+    i18nOverrides: getI18nOverrides_(formId),
     sheetBaseName: props.getProperty(k("SHEET_BASE_NAME")) || (formId ? formId : SHEET_NAME),
     startAt: props.getProperty(k("REG_START")) || "",
     endAt: props.getProperty(k("REG_END")) || "",
@@ -1926,6 +1953,8 @@ function getRegConfig_(formId) {
     confirmEmailBody: props.getProperty(k("CONFIRM_EMAIL_BODY")) || "",
     paymentConfirmedEmailSubject: props.getProperty(k("PAYMENT_CONFIRMED_EMAIL_SUBJECT")) || "",
     paymentConfirmedEmailBody: props.getProperty(k("PAYMENT_CONFIRMED_EMAIL_BODY")) || "",
+    paymentReminderEmailSubject: props.getProperty(k("PAYMENT_REMINDER_EMAIL_SUBJECT")) || "",
+    paymentReminderEmailBody: props.getProperty(k("PAYMENT_REMINDER_EMAIL_BODY")) || "",
     archived: !!(getFormsRegistry_().find(f => f.id === formId) || {}).archived,
   };
 }
@@ -2033,6 +2062,7 @@ function describeActionForLog_(payload) {
     case "resendConfirmationEmail": return `أعاد إرسال إيميل التأكيد (${payload.nationalId || ""})`;
     case "confirmPayment": return `${payload.confirmed ? "أكّد" : "ألغى تأكيد"} دفع (${payload.membershipNo || ""})`;
     case "confirmGroupPayment": return `${payload.confirmed ? "أكّد" : "ألغى تأكيد"} دفع مجموعة كاملة (كود: ${payload.groupCode || ""})`;
+    case "sendPaymentReminders": return "بعت تذكير دفع جماعي";
     case "saveFieldConfig": return "عدّل إعدادات حقول الاستمارة";
     case "listAdminAccounts": return "شاف قائمة الحسابات";
     case "addAdminAccount": return `أضاف/عدّل حساب: ${payload.name || ""}`;
@@ -2124,6 +2154,7 @@ const ACTION_PERMISSIONS = {
   resendConfirmationEmail: "manageCertificates",
   confirmPayment: "manageCertificates",
   confirmGroupPayment: "manageCertificates",
+  sendPaymentReminders: "manageCertificates",
   saveFieldConfig: "manageFields",
   listAdminAccounts: "manageAccounts",
   addAdminAccount: "manageAccounts",
@@ -2156,6 +2187,7 @@ function handleAdminAction_(payload) {
   if (payload.action === "resendConfirmationEmail") return logAndReturn_(account, payload, handleResendConfirmationEmail_(payload));
   if (payload.action === "confirmPayment") return logAndReturn_(account, payload, handleConfirmPayment_(payload));
   if (payload.action === "confirmGroupPayment") return logAndReturn_(account, payload, handleConfirmGroupPayment_(payload));
+  if (payload.action === "sendPaymentReminders") return logAndReturn_(account, payload, handleSendPaymentReminders_(payload));
   if (payload.action === "saveFieldConfig") return logAndReturn_(account, payload, handleSaveFieldConfig_(payload));
   if (payload.action === "listAdminAccounts") return handleListAdminAccounts_(); // read-only, not logged — keeps the log focused on actual changes
   if (payload.action === "addAdminAccount") return logAndReturn_(account, payload, handleAddAdminAccount_(payload));
@@ -2319,6 +2351,23 @@ function handleSaveConfig_(payload) {
   props.setProperty(k("FORM_TITLE"), formTitle);
   props.setProperty(k("TRUST_NOTE"), trustNote);
   props.setProperty(k("FORM_SUBTITLE"), formSubtitle);
+  // "نصوص متقدمة" — the admin pastes a JSON object like {"btnNext": "كمل"}.
+  // Sent as a JSON STRING (not a parsed object) since it's typed free-form
+  // into a textarea — invalid JSON is silently ignored (keeps whatever was
+  // saved before) rather than wiping existing overrides over one typo.
+  if (typeof payload.i18nOverrides !== "undefined") {
+    try {
+      const parsed = JSON.parse(payload.i18nOverrides || "{}");
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        const cleaned = {};
+        Object.keys(parsed).forEach(key => {
+          const v = String(parsed[key] || "").trim();
+          if (v) cleaned[key] = v;
+        });
+        props.setProperty(k("I18N_OVERRIDES"), JSON.stringify(cleaned));
+      }
+    } catch (e) { /* invalid JSON typed in — leave the previously saved overrides untouched */ }
+  }
   if (sheetBaseName) props.setProperty(k("SHEET_BASE_NAME"), sheetBaseName);
   props.setProperty(k("REG_START"), startAt);
   props.setProperty(k("REG_END"), endAt);
@@ -2352,6 +2401,12 @@ function handleSaveConfig_(payload) {
   }
   if (typeof payload.paymentConfirmedEmailBody !== "undefined") {
     props.setProperty(k("PAYMENT_CONFIRMED_EMAIL_BODY"), String(payload.paymentConfirmedEmailBody || "").trim());
+  }
+  if (typeof payload.paymentReminderEmailSubject !== "undefined") {
+    props.setProperty(k("PAYMENT_REMINDER_EMAIL_SUBJECT"), String(payload.paymentReminderEmailSubject || "").trim());
+  }
+  if (typeof payload.paymentReminderEmailBody !== "undefined") {
+    props.setProperty(k("PAYMENT_REMINDER_EMAIL_BODY"), String(payload.paymentReminderEmailBody || "").trim());
   }
 
   // Success-screen buttons ("🎉 خيارات بعد التسجيل"). Only touched when the
@@ -2953,6 +3008,62 @@ function handleConfirmGroupPayment_(payload) {
   return jsonOutput_({ status: "success", paymentStatus: newStatus, matched, emailsSent });
 }
 
+// Sent by handleSendPaymentReminders_ below — same optional subject/body
+// override pattern as sendConfirmationEmail_/sendPaymentConfirmedEmail_.
+function sendPaymentReminderEmail_(p, membershipNo, cfg) {
+  try {
+    if (!p.email) return false;
+    const fill = (s) => s.replace(/\{\{name\}\}/g, p.name || "").replace(/\{\{membershipNo\}\}/g, membershipNo || "");
+    const subject = (cfg && cfg.paymentReminderEmailSubject)
+      ? fill(cfg.paymentReminderEmailSubject)
+      : "تذكير بإتمام الدفع — أسرة صناع الحياة";
+    const bodyText = (cfg && cfg.paymentReminderEmailBody)
+      ? fill(cfg.paymentReminderEmailBody)
+      : `أهلًا ${p.name}،\n\n` +
+        `ده تذكير بسيط إن دفعك لسه معلّق/لسه بنراجعه — لو كنت دفعت بالفعل وبعت الإيصال، بلاش قلق هنراجعه ونأكدلك قريب.\n` +
+        `لو لسه ماكملتش الدفع، يفضل تكمله في أقرب وقت.\n` +
+        `رقم عضويتك: ${membershipNo}\n\n` +
+        `تحياتنا،\nفريق أسرة صناع الحياة`;
+    sendEmail_(p.email.trim(), subject, bodyText);
+    return true;
+  } catch (err) {
+    console.error("Payment reminder email failed:", err);
+    return false;
+  }
+}
+
+// action=sendPaymentReminders — dashboard's "📧 ابعت تذكير لكل اللي لسه
+// معلّقين" bulk button. Emails everyone in the given (or currently active)
+// sheet/cycle whose Payment Status is anything OTHER than "تم التأكيد ✓"
+// (blank OR "قيد المراجعة" both count — either way they aren't confirmed
+// yet) and who has an email on file. Best-effort per row, same as
+// handleSendCertificatesBulk_ — one bad address never stops the rest.
+function handleSendPaymentReminders_(payload) {
+  const formId = String(payload.formId || "").trim();
+  const cfg = getRegConfig_(formId);
+  const sheet = findSheet_(payload.sheet || cfg.activeSheetName);
+  if (!sheet) return jsonOutput_({ status: "error", message: "الشيت مش موجود." });
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0] || [];
+  const statusCol = headers.indexOf("Payment Status");
+  if (statusCol === -1) {
+    return jsonOutput_({ status: "error", message: "الشيت ده مفيهوش عمود حالة دفع — حد لسه ما استخدمش خاصية صورة الإيصال فيه." });
+  }
+
+  let sent = 0, failed = 0, skippedNoEmail = 0, skippedAlreadyPaid = 0;
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (!row.some(c => String(c).trim() !== "")) continue; // blank trailing row
+    if (String(row[statusCol] || "").trim() === "تم التأكيد ✓") { skippedAlreadyPaid += 1; continue; }
+    const person = rowToPerson_(headers, row);
+    if (!person.email) { skippedNoEmail += 1; continue; }
+    if (sendPaymentReminderEmail_(person, person.membershipNo, cfg)) sent += 1; else failed += 1;
+  }
+
+  return jsonOutput_({ status: "success", sent, failed, skippedNoEmail, skippedAlreadyPaid });
+}
+
 
 // action=sendCertificatesBulk — sends to everyone with a valid email in the
 // given (or currently active) sheet/cycle. Best-effort per row: one failure
@@ -3262,6 +3373,48 @@ function handleVerifyMember_(e) {
     status: "success",
     member: rowToMember_(found.headers, found.row),
     checkedInAt: checkedInAt ? (checkedInAt instanceof Date ? checkedInAt.toISOString() : String(checkedInAt)) : null,
+  });
+}
+
+// action=checkMyStatus (GET, PUBLIC — no password) — the "هل دفعي اتأكد؟"
+// self-service page (dys_status.html). Deliberately requires BOTH the
+// membership number AND the email/phone/WhatsApp number that was used to
+// register, not just the membership number alone — membership numbers are
+// sequential (OSH-000001, OSH-000002, ...) and easy to guess/enumerate, so
+// a lookup by number alone would let anyone harvest every registrant's name
+// and payment status just by counting up. Requiring the matching contact
+// detail too means only someone who actually registered (or was told their
+// own details by whoever did) can look themselves up. A wrong/missing
+// verifier and a genuinely nonexistent code get the EXACT same "not_found"
+// response — never distinguishing the two — so this can't be used as an
+// oracle to confirm which membership numbers are real.
+function handleCheckMyStatus_(e) {
+  const code = extractMembershipNo_(e.parameter.code || "");
+  const verifier = String(e.parameter.verify || "").trim().toLowerCase();
+  if (!code || !verifier) {
+    return jsonOutput_({ status: "error", message: "اكتب رقم العضوية، والإيميل أو رقم الهاتف اللي سجّلت بيهم." });
+  }
+
+  const found = findMemberRowInAllCycles_(code, String(e.parameter.form || "").trim());
+  if (!found) return jsonOutput_({ status: "not_found" });
+
+  const get = (name) => {
+    const i = found.headers.indexOf(name);
+    return i > -1 ? String(found.row[i] || "").trim() : "";
+  };
+  const matches = verifier === get("Email").toLowerCase() || verifier === get("Phone") || verifier === get("Whatsapp");
+  if (!matches) return jsonOutput_({ status: "not_found" });
+
+  const hasPaymentField = found.headers.indexOf("Payment Status") > -1;
+  const paymentStatus = get("Payment Status");
+  const chkCol = found.headers.indexOf("Checked In At");
+  return jsonOutput_({
+    status: "success",
+    name: get("Name"),
+    membershipNo: get("Membership No"),
+    hasPaymentField,
+    paymentConfirmed: paymentStatus === "تم التأكيد ✓",
+    checkedIn: chkCol > -1 && !!found.row[chkCol],
   });
 }
 
