@@ -1448,6 +1448,7 @@
             <button type="button" id="printBtn">🖨️ طباعة</button>
             <button type="button" id="exportBtn">⬇ تصدير CSV سريع</button>
             <button type="button" id="exportExcelBtn">📊 تصدير Excel منسّق (.xlsx)</button>
+            <button type="button" id="sendPaymentRemindersBtn" title="بيبعت تذكير إيميل لكل اللي لسه دفعهم مش مؤكد (فاضي أو قيد المراجعة) في الشيت الحالي">📧 ابعت تذكير دفع للمعلّقين</button>
             <button type="button" id="copyPhonesBtn"
               title="بينسخ أرقام الموبايل بتاعة الصفوف الظاهرة حاليًا بعد الفلاتر، سطر تحت التاني — جاهزة تلصقها في قايمة واتساب">📋
               نسخ أرقام الموبايل</button>
@@ -1498,6 +1499,9 @@
           <div class="chart-card">
             <h3>متطوع قديم ولا عضو جديد؟</h3><canvas id="chartVolunteerStatus"></canvas>
           </div>
+          <div class="chart-card">
+            <h3>عدد المسجلين في كل عرض جماعة</h3><canvas id="chartGroupOffers"></canvas>
+          </div>
         </div>
       </div>
 
@@ -1532,6 +1536,17 @@
             <div class="settings-field">
               <label for="cfgFormSubtitle">السطر اللي تحت عنوان الاستمارة مباشرة (سيب فاضي = النص الافتراضي)</label>
               <input type="text" id="cfgFormSubtitle" placeholder="مثال: GAP Event - Life Makers">
+            </div>
+            <div class="settings-field">
+              <label for="cfgI18nOverrides">نصوص متقدمة (رسايل الأخطاء، أسماء الأزرار، إلخ) — اختياري</label>
+              <p class="hint">للمستخدم المتقدم بس. اكتب كائن JSON بالشكل {"المفتاح": "النص الجديد"} — أي مفتاح
+                مش موجود هنا بيفضل بنصه الافتراضي زي ما هو. أشهر المفاتيح: <code>btnNext</code> (زرار التالي)،
+                <code>btnBack</code> (السابق)، <code>btnSubmit</code> (تأكيد الإرسال)، <code>errPhone</code>
+                (رسالة رقم الهاتف الغلط)، <code>errNid</code> (رسالة الرقم القومي الغلط)، <code>errEmail</code>
+                (رسالة الإيميل الغلط)، <code>submitDuplicate</code> (رسالة "مسجّل بالفعل")، <code>successTitle</code>
+                و<code>successBody</code> (عنوان ونص شاشة النجاح). سيب الخانة فاضية أو اكتب <code>{}</code> عشان
+                ترجع لكل النصوص الافتراضية.</p>
+              <textarea id="cfgI18nOverrides" rows="5" placeholder='{"btnNext": "كمل", "errPhone": "اكتب رقم هاتف مصري صح من فضلك"}'></textarea>
             </div>
             <div class="settings-field">
               <label for="cfgSheetBaseName">اسم الشيت الأساسي</label>
@@ -1576,6 +1591,14 @@
             <div class="settings-field">
               <label for="cfgPaymentConfirmedEmailBody">نص إيميل تأكيد الدفع — بيتبعت لما تدوس "✅ تأكيد الدفع" في تفاصيل أي عضو (سيب فاضي = النص الافتراضي)</label>
               <textarea id="cfgPaymentConfirmedEmailBody" rows="5" placeholder="استخدم {{name}} للاسم و{{membershipNo}} لرقم العضوية"></textarea>
+            </div>
+            <div class="settings-field">
+              <label for="cfgPaymentReminderEmailSubject">عنوان إيميل تذكير الدفع (سيب فاضي = النص الافتراضي)</label>
+              <input type="text" id="cfgPaymentReminderEmailSubject" placeholder="مثال: تذكير بإتمام الدفع — حدث كذا">
+            </div>
+            <div class="settings-field">
+              <label for="cfgPaymentReminderEmailBody">نص إيميل تذكير الدفع — بيتبعت لكل اللي لسه معلّقين لما تدوس زرار "📧 ابعت تذكير" في تبويب الجدول (سيب فاضي = النص الافتراضي)</label>
+              <textarea id="cfgPaymentReminderEmailBody" rows="5" placeholder="استخدم {{name}} للاسم و{{membershipNo}} لرقم العضوية"></textarea>
             </div>
             <div class="settings-actions">
               <button type="button" class="settings-btn primary" id="saveConfigBtn">حفظ الإعدادات</button>
@@ -2056,6 +2079,11 @@
         const card = anchorEl ? anchorEl.closest(".settings-card") : null;
         if (card) card.style.display = currentPermissions[permission] ? "" : "none";
       });
+
+      // Not a settings-card, but still sends bulk emails — same permission
+      // the single/group payment-confirm buttons already require.
+      const remindersBtn = document.getElementById("sendPaymentRemindersBtn");
+      if (remindersBtn) remindersBtn.style.display = currentPermissions.manageCertificates ? "" : "none";
     }
 
     function renderSkeleton() {
@@ -2264,6 +2292,7 @@
       COL.membershipNo = findColIndex(["Membership No", "رقم العضوية"]);
       COL.receiptUrl = findColIndex(["Receipt URL"]);
       COL.paymentStatus = findColIndex(["Payment Status"]);
+      COL.groupOffer = findColIndex(["Group Offer"]);
     }
 
     // Phone/whatsapp numbers that show up on more than one row — computed
@@ -2792,6 +2821,7 @@
           document.getElementById("cfgFormTitle").value = cfg.formTitle || "";
           document.getElementById("cfgTrustNote").value = cfg.trustNote || "";
           document.getElementById("cfgFormSubtitle").value = cfg.formSubtitle || "";
+          document.getElementById("cfgI18nOverrides").value = (cfg.i18nOverrides && Object.keys(cfg.i18nOverrides).length) ? JSON.stringify(cfg.i18nOverrides, null, 2) : "";
           document.getElementById("cfgSheetBaseName").value = cfg.sheetBaseName || "";
           document.getElementById("cfgMembershipPrefix").value = cfg.membershipPrefix || "";
           document.getElementById("cfgStartAt").value = isoToLocalInputValue(cfg.startAt);
@@ -2801,6 +2831,8 @@
           document.getElementById("cfgConfirmEmailBody").value = cfg.confirmEmailBody || "";
           document.getElementById("cfgPaymentConfirmedEmailSubject").value = cfg.paymentConfirmedEmailSubject || "";
           document.getElementById("cfgPaymentConfirmedEmailBody").value = cfg.paymentConfirmedEmailBody || "";
+          document.getElementById("cfgPaymentReminderEmailSubject").value = cfg.paymentReminderEmailSubject || "";
+          document.getElementById("cfgPaymentReminderEmailBody").value = cfg.paymentReminderEmailBody || "";
           const preview = document.getElementById("logoPreview");
           preview.src = cfg.logoUrl || "icon.svg";
 
@@ -3529,6 +3561,7 @@
         formTitle: document.getElementById("cfgFormTitle").value.trim(),
         trustNote: document.getElementById("cfgTrustNote").value.trim(),
         formSubtitle: document.getElementById("cfgFormSubtitle").value.trim(),
+        i18nOverrides: document.getElementById("cfgI18nOverrides").value.trim() || "{}",
         sheetBaseName: document.getElementById("cfgSheetBaseName").value.trim(),
         membershipPrefix: document.getElementById("cfgMembershipPrefix").value.trim(),
         startAt: startVal ? new Date(startVal).toISOString() : "",
@@ -3538,6 +3571,8 @@
         confirmEmailBody: document.getElementById("cfgConfirmEmailBody").value.trim(),
         paymentConfirmedEmailSubject: document.getElementById("cfgPaymentConfirmedEmailSubject").value.trim(),
         paymentConfirmedEmailBody: document.getElementById("cfgPaymentConfirmedEmailBody").value.trim(),
+        paymentReminderEmailSubject: document.getElementById("cfgPaymentReminderEmailSubject").value.trim(),
+        paymentReminderEmailBody: document.getElementById("cfgPaymentReminderEmailBody").value.trim(),
         sendCertAuto: document.getElementById("cfgSendCertAuto").checked,
         // Always sent (even from the other save buttons on this tab) so this
         // list never gets silently overwritten by an unrelated save — it just
@@ -3548,6 +3583,13 @@
 
     document.getElementById("saveConfigBtn").addEventListener("click", () => {
       const btn = document.getElementById("saveConfigBtn");
+      const i18nRaw = document.getElementById("cfgI18nOverrides").value.trim() || "{}";
+      try {
+        JSON.parse(i18nRaw);
+      } catch (e) {
+        setNote("configNote", "خانة \"نصوص متقدمة\" فيها JSON مش مكتوب صح — راجعها الأول (لازم تبدأ بـ { وتنتهي بـ })", "err");
+        return;
+      }
       btn.disabled = true;
       setNote("configNote", "جاري الحفظ...");
       postAdmin(Object.assign(collectConfigPayload(), { startNewCycle: false }))
@@ -3889,6 +3931,24 @@
           options: { responsive: true, plugins: { legend: { position: "bottom" } } }
         });
       }
+
+      // Group offers bar — counts every non-blank "Group Offer" value (see
+      // handleSubmit_/buildRow_ in Code.gs, which stamps the chosen tier's
+      // LABEL onto every row in that group). Plain registrants with no
+      // group offer just have "" here and are excluded rather than shown as
+      // a giant "no offer" slice that would dwarf the actual breakdown.
+      if (COL.groupOffer > -1) {
+        const counter = {};
+        allRows.forEach(r => { const v = String(r[COL.groupOffer] || "").trim(); if (v) counter[v] = (counter[v] || 0) + 1; });
+        const entries = Object.entries(counter).sort((a, b) => b[1] - a[1]);
+        if (entries.length) {
+          charts.groupOffers = new Chart(document.getElementById("chartGroupOffers"), {
+            type: "bar",
+            data: { labels: entries.map(e => e[0]), datasets: [{ label: "عدد", data: entries.map(e => e[1]), backgroundColor: colors.palette[3] }] },
+            options: { indexAxis: "y", responsive: true, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: colors.grid } }, y: { grid: { display: false } } } }
+          });
+        }
+      }
     }
 
     // ==================== Export & Print ====================
@@ -4005,7 +4065,23 @@
         .finally(() => { btn.disabled = false; btn.textContent = originalText; });
     });
 
-    // ==================== AI chat assistant ====================
+    document.getElementById("sendPaymentRemindersBtn").addEventListener("click", () => {
+      const targetSheet = currentSheetName || activeSheetNameFromServer;
+      if (!targetSheet) { toast("اختار شيت الأول"); return; }
+      const ok = confirm(`هيتبعت إيميل تذكير لكل عضو معاه إيميل ودفعه لسه مش مؤكد جوه "${targetSheet}". العملية ممكن تاخد وقت لو العدد كبير. متابعة؟`);
+      if (!ok) return;
+      const btn = document.getElementById("sendPaymentRemindersBtn");
+      btn.disabled = true;
+      const originalText = btn.textContent;
+      btn.textContent = "جاري الإرسال...";
+      postAdmin({ action: "sendPaymentReminders", sheet: targetSheet })
+        .then(res => {
+          if (res.status !== "success") throw new Error(res.message || "error");
+          toast(`اتبعت ${res.sent} تذكير ✓ (فشل: ${res.failed} | من غير إيميل: ${res.skippedNoEmail} | كانوا مدفوعين خلاص: ${res.skippedAlreadyPaid})`);
+        })
+        .catch(err => toast("حصل خطأ: " + err.message))
+        .finally(() => { btn.disabled = false; btn.textContent = originalText; });
+    });
     const AI_QUICK_QUESTIONS_DASH = [
       "كام واحد سجل لحد دلوقتي؟",
       "إزاي أضيف فورم جديد؟",
