@@ -1958,6 +1958,23 @@
               }
             });
           }
+          // "نصوص متقدمة" — free-form overrides for ANY OTHER i18n key
+          // (error/validation messages, button labels, ...) the admin typed
+          // into Settings, on top of the more specific overrides above.
+          // Same approach: mutate the dictionary (so it's picked up by any
+          // t(key) call made later, e.g. an error message that hasn't
+          // happened yet) AND update any matching element already in the
+          // DOM right now (e.g. "التالي"/"السابق", which render immediately).
+          if (res.i18nOverrides) {
+            Object.keys(res.i18nOverrides).forEach(key => {
+              const override = res.i18nOverrides[key];
+              if (!override) return;
+              I18N.ar[key] = override;
+              if (currentLang === "ar") {
+                document.querySelectorAll(`[data-i18n="${key}"]`).forEach(el => { el.textContent = override; });
+              }
+            });
+          }
           if (res.logoUrl) {
             const img = document.getElementById("customLogoImg");
             img.onload = () => {
