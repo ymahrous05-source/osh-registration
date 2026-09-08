@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>هل دفعي اتأكد؟ - أسرة صناع الحياة بالجامعات المصرية</title>
+  <meta name="description" content="استعلم عن حالة دفعك برقم عضويتك - أسرة صناع الحياة بالجامعات المصرية">
+  <meta name="theme-color" content="#08283f">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --dys-bg-1: #08283f;
+      --dys-bg-2: #0e3c5c;
+      --dys-bg-3: #061c2c;
+      --dys-green: #1668a0;
+      --dys-green-dark: #0a4b73;
+      --dys-white: #ffffff;
+      --dys-text: #0d2438;
+      --dys-text-muted: #5b7186;
+      --dys-error: #c0392b;
+      --dys-warn: #c98a0b;
+      --card-radius: 24px;
+      --ease: cubic-bezier(.22, 1, .36, 1);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { margin: 0; padding: 0; overflow-x: hidden; }
+
+    body {
+      font-family: 'Cairo', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 20px 14px 40px;
+      background:
+        radial-gradient(1200px 600px at 15% -10%, rgba(245, 171, 30, .10), transparent 60%),
+        radial-gradient(900px 500px at 110% 10%, rgba(60, 180, 74, .18), transparent 55%),
+        linear-gradient(165deg, var(--dys-bg-2) 0%, var(--dys-bg-1) 55%, var(--dys-bg-3) 100%);
+      color: var(--dys-text);
+    }
+
+    .wrap { width: 100%; max-width: 440px; }
+
+    .brand {
+      text-align: center;
+      color: rgba(255,255,255,.85);
+      font-weight: 700;
+      margin-bottom: 14px;
+      font-size: 14px;
+      letter-spacing: .3px;
+    }
+
+    .card {
+      background: var(--dys-white);
+      border-radius: var(--card-radius);
+      padding: 22px 20px 26px;
+      box-shadow: 0 30px 80px rgba(0,0,0,.4);
+    }
+
+    h1 { font-size: 20px; margin: 0 0 4px; text-align: center; }
+    .sub { text-align: center; color: var(--dys-text-muted); font-size: 13px; margin-bottom: 18px; }
+
+    label { display: block; font-size: 13px; font-weight: 700; margin: 0 0 6px; color: var(--dys-text); }
+    input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1.5px solid #dfe6e0;
+      font-family: inherit;
+      font-size: 15px;
+      margin-bottom: 14px;
+    }
+    input:focus { outline: none; border-color: var(--dys-green); }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 14px;
+      background: var(--dys-green);
+      color: #fff;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: transform .15s var(--ease), background .15s;
+    }
+    .btn:hover { background: var(--dys-green-dark); }
+    .btn:active { transform: scale(.98); }
+    .btn:disabled { opacity: .6; cursor: default; }
+
+    .err-note { color: var(--dys-error); font-size: 13px; margin-top: 12px; text-align: center; display: none; }
+
+    #result { display: none; border-radius: 16px; padding: 18px; margin-top: 16px; }
+    #result.ok { background: #eef8ef; border: 1.5px solid #bfe6c4; }
+    #result.warn { background: #fff8e6; border: 1.5px solid #f0dca0; }
+    #result.bad { background: #fdecea; border: 1.5px solid #f3c2bd; }
+
+    .result-name { font-size: 17px; font-weight: 800; margin-bottom: 2px; }
+    .result-meta { font-size: 13px; color: var(--dys-text-muted); margin-bottom: 10px; }
+    .result-line { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; margin-top: 6px; }
+    #result.ok .result-line.payment { color: var(--dys-green-dark); }
+    #result.warn .result-line.payment { color: var(--dys-warn); }
+
+    .foot {
+      text-align: center;
+      color: rgba(255,255,255,.55);
+      font-size: 11px;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="brand">أسرة صناع الحياة بالجامعات المصرية</div>
+    <div class="card">
+      <h1>هل دفعي اتأكد؟ ✅</h1>
+      <p class="sub">اكتب رقم عضويتك، والإيميل أو رقم الهاتف اللي سجّلت بيهم، عشان تشوف حالة دفعك.</p>
+
+      <label for="codeInput">رقم العضوية</label>
+      <input type="text" id="codeInput" placeholder="مثال: OSH-000123" autocomplete="off">
+
+      <label for="verifyInput">الإيميل أو رقم الهاتف اللي سجّلت بيه</label>
+      <input type="text" id="verifyInput" placeholder="الإيميل أو رقم الهاتف" autocomplete="off">
+
+      <button type="button" class="btn" id="checkBtn">استعلام</button>
+      <div class="err-note" id="errNote"></div>
+
+      <div id="result">
+        <div class="result-name" id="resName"></div>
+        <div class="result-meta" id="resMembershipNo"></div>
+        <div class="result-line payment" id="resPayment"></div>
+        <div class="result-line" id="resCheckin" style="color: var(--dys-text-muted);"></div>
+      </div>
+    </div>
+    <div class="foot">لو الاستعلام مش راضي يلاقي بياناتك، تأكد إنك كاتب نفس الإيميل أو رقم الهاتف اللي سجّلت بيهم بالظبط.</div>
+  </div>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxCc8DQOMXJeL_DmH6xf1f_UBL-7Qfef8yiyLdY-x8Dnsa6EDBJASMKk6shoLtOieHn/exec";
+    const FORM_ID = new URLSearchParams(location.search).get("form") || "";
+
+    const codeInput = document.getElementById("codeInput");
+    const verifyInput = document.getElementById("verifyInput");
+    const checkBtn = document.getElementById("checkBtn");
+    const errNote = document.getElementById("errNote");
+    const result = document.getElementById("result");
+
+    function showError(msg) {
+      result.style.display = "none";
+      errNote.textContent = msg;
+      errNote.style.display = "block";
+    }
+
+    function runCheck() {
+      const code = codeInput.value.trim();
+      const verify = verifyInput.value.trim();
+      if (!code || !verify) {
+        showError("اكتب رقم العضوية، والإيميل أو رقم الهاتف.");
+        return;
+      }
+
+      errNote.style.display = "none";
+      result.style.display = "none";
+      checkBtn.disabled = true;
+      const originalText = checkBtn.textContent;
+      checkBtn.textContent = "جاري الاستعلام...";
+
+      const url = `${SCRIPT_URL}?action=checkMyStatus&code=${encodeURIComponent(code)}&verify=${encodeURIComponent(verify)}&form=${encodeURIComponent(FORM_ID)}&_=${Date.now()}`;
+      fetch(url, { cache: "no-store" })
+        .then(r => r.json())
+        .then(res => {
+          if (res.status === "not_found") {
+            showError("مش لاقيين بيانات بالتفاصيل دي — تأكد من رقم العضوية والإيميل/الرقم اللي كتبتهم.");
+            return;
+          }
+          if (res.status !== "success") {
+            showError(res.message || "حصل خطأ، جرب تاني.");
+            return;
+          }
+
+          document.getElementById("resName").textContent = res.name || "—";
+          document.getElementById("resMembershipNo").textContent = res.membershipNo || "";
+
+          const paymentEl = document.getElementById("resPayment");
+          const checkinEl = document.getElementById("resCheckin");
+          if (res.hasPaymentField) {
+            paymentEl.textContent = res.paymentConfirmed ? "💳 دفعك اتأكد ✓" : "⏳ دفعك لسه مش متأكد";
+            result.className = res.paymentConfirmed ? "ok" : "warn";
+          } else {
+            paymentEl.textContent = "✅ تسجيلك مسجّل بنجاح";
+            result.className = "ok";
+          }
+          checkinEl.textContent = res.checkedIn ? "✅ اتسجل حضورك في الإيفنت" : "";
+          result.style.display = "block";
+        })
+        .catch(() => showError("تعذر الاتصال — جرب تاني."))
+        .finally(() => {
+          checkBtn.disabled = false;
+          checkBtn.textContent = originalText;
+        });
+    }
+
+    checkBtn.addEventListener("click", runCheck);
+    [codeInput, verifyInput].forEach(inp => {
+      inp.addEventListener("keydown", (e) => { if (e.key === "Enter") runCheck(); });
+    });
+  </script>
+</body>
+
+</html>
