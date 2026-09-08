@@ -1723,6 +1723,11 @@
     // the original default form (see propKey_() in Code.gs) — so the
     // original link with no ?form= at all keeps working exactly as before.
     const DYS_FORM_ID = new URLSearchParams(window.location.search).get("form") || "";
+    // Scoped by form — a device that registered for THIS form should still
+    // see the normal empty form when visiting a DIFFERENT form's link (or
+    // this same script deployed for another event), not get stuck on an
+    // old success screen from something unrelated.
+    const ALREADY_REGISTERED_KEY = "dys_already_registered_v1" + (DYS_FORM_ID ? ("__" + DYS_FORM_ID) : "");
 
     // ==================== i18n ====================
     const I18N = {
@@ -1991,8 +1996,28 @@
           // Only enabled entries ever come back from publicConfig (server-side
           // filter), so this is already exactly what should render.
           DYS_SUCCESS_ACTIONS = Array.isArray(res.successActions) ? res.successActions : [];
+
+          // Now that branding/success-actions are ready, jump straight to
+          // the success screen if THIS device already registered before —
+          // see the ALREADY_REGISTERED_KEY note in showSuccessScreen().
+          restoreSuccessScreenIfAlreadyRegistered_();
         })
         .catch(() => { /* backend unreachable — fall back to "always open", exactly like before */ });
+    }
+
+    // Convenience only, not a real duplicate-registration guard (that's the
+    // server-side National ID/phone/email checks in Code.gs) — a device
+    // that has this form's ALREADY_REGISTERED_KEY in localStorage just gets
+    // taken straight to its own past success screen instead of the empty
+    // form, so revisiting the same link doesn't look like "did my
+    // registration not go through?". Clearing browser data, a different
+    // browser, or incognito all skip this and show the normal form, exactly
+    // as if nothing had ever been registered from that device.
+    function restoreSuccessScreenIfAlreadyRegistered_() {
+      let saved;
+      try { saved = JSON.parse(localStorage.getItem(ALREADY_REGISTERED_KEY) || "null"); } catch (e) { saved = null; }
+      if (!saved || !saved.payload || !saved.res) return;
+      showSuccessScreen(saved.payload, saved.res, true);
     }
 
     // ==================== Egyptian National ID parsing ====================
@@ -3123,12 +3148,34 @@
     }
 
     // ==================== Submit ====================
-    function showSuccessScreen(payload, res) {
+    function showSuccessScreen(payload, res, isRestore) {
       document.getElementById("formArea").style.display = "none";
       document.getElementById("offlineQueuedArea").classList.remove("visible");
       document.getElementById("successArea").classList.add("visible");
       try { localStorage.removeItem(DRAFT_KEY); } catch (e) { }
-      launchConfetti();
+      if (!isRestore) launchConfetti(); // only on the actual moment of registering — not every time this same screen gets restored on a later visit
+
+      // Remembers "this device already registered" so a later visit to the
+      // same link can jump straight back to this same success screen
+      // instead of showing the form again — see restoreSuccessScreenIfAlreadyRegistered_
+      // near the top of this script. This is a CONVENIENCE for someone
+      // revisiting their own link, not a real duplicate-registration
+      // guard — that's what the server-side National ID/phone/email checks
+      // in Code.gs are for. Clearing browser data, opening the link in a
+      // different browser, or using incognito all bypass this completely,
+      // same as any localStorage-based memory would.
+      //
+      // Only the handful of fields this screen actually reads get saved —
+      // NOT the full payload, which can carry a base64 photo/receipt image
+      // large enough to risk hitting localStorage's storage quota for no
+      // benefit (nothing here ever displays that image again).
+      if (!isRestore) {
+        try {
+          const slimPayload = { name: payload.name, email: payload.email, nationalId: payload.nationalId, committee: payload.committee };
+          const slimRes = { membershipNo: res.membershipNo, emailSent: res.emailSent };
+          localStorage.setItem(ALREADY_REGISTERED_KEY, JSON.stringify({ payload: slimPayload, res: slimRes }));
+        } catch (e) { /* storage full/blocked — the success screen still shows fine just this once */ }
+      }
 
       if (res.membershipNo) {
         document.getElementById("memberNoValue").textContent = res.membershipNo;
