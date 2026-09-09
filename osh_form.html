@@ -1387,6 +1387,10 @@
 
     <div class="card">
 
+      <div id="restoringNotice" style="display:none; padding:70px 20px; text-align:center; color:var(--dys-text-muted); font-weight:600;">
+        بنجيب بياناتك...
+      </div>
+
       <div id="formArea">
         <h1 class="title" id="formTitleEl" data-i18n="pageTitle">استمارة تسجيل البيانات</h1>
         <p class="subtitle" id="formSubtitleEl">GAP Event - Life Makers</p>
@@ -2002,7 +2006,16 @@
           // see the ALREADY_REGISTERED_KEY note in showSuccessScreen().
           restoreSuccessScreenIfAlreadyRegistered_();
         })
-        .catch(() => { /* backend unreachable — fall back to "always open", exactly like before */ });
+        .catch(() => {
+          // Backend unreachable — for a fresh visitor this already meant
+          // "fall back to always open, exactly like before"; for a
+          // returning device this ALSO restores its success screen (using
+          // the fallback WhatsApp numbers instead of the real
+          // DYS_SUCCESS_ACTIONS, same graceful degradation the rest of this
+          // page already does offline) — otherwise they'd be stuck staring
+          // at "بنجيب بياناتك..." forever with no way forward.
+          restoreSuccessScreenIfAlreadyRegistered_();
+        });
     }
 
     // Convenience only, not a real duplicate-registration guard (that's the
@@ -3150,6 +3163,7 @@
     // ==================== Submit ====================
     function showSuccessScreen(payload, res, isRestore) {
       document.getElementById("formArea").style.display = "none";
+      document.getElementById("restoringNotice").style.display = "none";
       document.getElementById("offlineQueuedArea").classList.remove("visible");
       document.getElementById("successArea").classList.add("visible");
       try { localStorage.removeItem(DRAFT_KEY); } catch (e) { }
@@ -3582,6 +3596,20 @@
     }
 
     // ==================== Init ====================
+    // Synchronous, immediate check — BEFORE anything else runs — so a
+    // returning device sees "بنجيب بياناتك..." instead of a flash of the
+    // empty form while loadRegistrationConfig()'s fetch is still in
+    // flight. The actual success screen only renders once that fetch
+    // resolves (see restoreSuccessScreenIfAlreadyRegistered_), since it
+    // needs the real logo/success-action buttons from the backend — this
+    // is just about what's on screen for that brief moment beforehand.
+    (function hideFormImmediatelyIfAlreadyRegistered_() {
+      let saved;
+      try { saved = localStorage.getItem(ALREADY_REGISTERED_KEY); } catch (e) { saved = null; }
+      if (!saved) return;
+      document.getElementById("formArea").style.display = "none";
+      document.getElementById("restoringNotice").style.display = "block";
+    })();
     applyLang(currentLang);
     loadDraftIfAny();
     computeProgress();
