@@ -704,13 +704,37 @@ const SUCCESS_ACTION_TYPES = ["whatsapp_chat", "whatsapp_group", "telegram", "fa
 
 function getSuccessActions_(formId) {
   const raw = PropertiesService.getScriptProperties().getProperty(propKey_("SUCCESS_ACTIONS", formId));
-  if (!raw) return [];
-  try {
-    const arr = JSON.parse(raw);
-    return Array.isArray(arr) ? arr : [];
-  } catch (e) {
-    return [];
+  let arr = [];
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) arr = parsed;
+    } catch (e) { arr = []; }
   }
+
+  // One-time seed — adds a "اتأكد إن دفعك تمام" link to the public status
+  // page (dys_status.html / handleCheckMyStatus_) the first time this runs
+  // after being deployed, so registrants actually discover that page exists
+  // instead of it sitting there unlinked from anywhere. Guarded by its own
+  // marker so it only ever runs ONCE per form — after that it's a
+  // completely normal success action, freely editable/removable from "🎉
+  // خيارات بعد التسجيل" like any other, and won't come back once removed.
+  const props = PropertiesService.getScriptProperties();
+  const seedKey = propKey_("SEEDED_STATUS_LINK_V1", formId);
+  if (!props.getProperty(seedKey)) {
+    const statusUrl = "https://ymahrous05-source.github.io/osh-registration/osh_status.html" + (formId ? ("?form=" + encodeURIComponent(formId)) : "");
+    arr = arr.concat([{
+      id: "sa_" + Utilities.getUuid().replace(/-/g, "").slice(0, 8),
+      type: "link",
+      label: "اتأكد إن دفعك تمام ✓",
+      value: statusUrl,
+      enabled: true,
+    }]);
+    saveSuccessActions_(arr, formId);
+    props.setProperty(seedKey, "1");
+  }
+
+  return arr;
 }
 
 function saveSuccessActions_(actions, formId) {
@@ -1531,6 +1555,15 @@ function handleSubmit_(payload) {
     // two rows sharing one inbox would otherwise both silently compete for
     // the same confirmation/QR/payment emails.
     const psIdx = HEADERS.indexOf("Payment Status");
+    const emailColIdx = HEADERS.indexOf("Email");
+    const cfColIdx = HEADERS.indexOf(CUSTOM_FIELDS_HEADER);
+    // One fresh read of what's actually in the sheet right now (includes
+    // the primary row just appended above) — used only to catch a friend
+    // who ALREADY has their own registration from before this submission.
+    // Without this, a friend who separately registered earlier (or is
+    // listed in two different group submissions) would get a brand-new
+    // duplicate row instead of being linked into this group.
+    const existingData = emailColIdx > -1 ? sheet.getDataRange().getValues() : [];
     const usedEmails = new Set([String(payload.email || "").trim().toLowerCase()].filter(Boolean));
     let groupMembersRegistered = 0;
     groupMembers.forEach(member => {
@@ -1540,6 +1573,27 @@ function handleSubmit_(payload) {
       const emailKey = friendEmail.toLowerCase();
       if (usedEmails.has(emailKey)) return;
       usedEmails.add(emailKey);
+
+      let existingRowIndex = -1;
+      if (emailColIdx > -1) {
+        for (let i = 1; i < existingData.length; i++) {
+          if (String(existingData[i][emailColIdx] || "").trim().toLowerCase() === emailKey) { existingRowIndex = i; break; }
+        }
+      }
+
+      if (existingRowIndex > -1) {
+        // Already has their own registration — link that row into THIS
+        // group instead of creating a duplicate. No new email/QR is sent:
+        // they already have their own from whenever they first registered.
+        if (cfColIdx > -1) {
+          let existingCustom = {};
+          try { existingCustom = JSON.parse(existingData[existingRowIndex][cfColIdx] || "{}"); } catch (e) { existingCustom = {}; }
+          existingCustom.c_groupcode = membershipNo;
+          sheet.getRange(existingRowIndex + 1, cfColIdx + 1).setValue(JSON.stringify(existingCustom));
+        }
+        groupMembersRegistered += 1;
+        return;
+      }
 
       const friendMembershipNo = generateMembershipNumber_(cfg.membershipPrefix);
       const friendPayload = {
@@ -3395,6 +3449,16 @@ function handleCheckMyStatus_(e) {
     return jsonOutput_({ status: "error", message: "اكتب رقم العضوية، والإيميل أو رقم الهاتف اللي سجّلت بيهم." });
   }
 
+  // Blunt global rate limit — Apps Script doesn't expose the caller's IP
+  // address, so a real per-visitor limit isn't possible here; this instead
+  // caps TOTAL checkMyStatus calls across every visitor combined to make an
+  // automated script trying lots of code+verify combinations back-to-back
+  // meaningfully slower, without noticeably affecting a normal person
+  // checking their own status once or twice.
+  if (!checkStatusRateLimit_()) {
+    return jsonOutput_({ status: "error", message: "في محاولات كتير أوي دلوقتي — استنى شوية وجرب تاني." });
+  }
+
   const found = findMemberRowInAllCycles_(code, String(e.parameter.form || "").trim());
   if (!found) return jsonOutput_({ status: "not_found" });
 
@@ -3416,6 +3480,24 @@ function handleCheckMyStatus_(e) {
     paymentConfirmed: paymentStatus === "تم التأكيد ✓",
     checkedIn: chkCol > -1 && !!found.row[chkCol],
   });
+}
+
+// Global sliding-ish window: at most 30 checkMyStatus calls per rolling
+// minute, counted across every visitor combined (see the reasoning at its
+// call site in handleCheckMyStatus_ above). CacheService.getScriptCache()
+// is shared across every execution of this project, which is exactly what
+// a GLOBAL (not per-visitor) limit needs — Apps Script doesn't expose the
+// caller's IP address, so a real per-visitor limit isn't achievable here.
+function checkStatusRateLimit_() {
+  try {
+    const cache = CacheService.getScriptCache();
+    const bucketKey = "CHECK_STATUS_RATE_" + Math.floor(Date.now() / 60000);
+    const current = Number(cache.get(bucketKey) || "0") + 1;
+    cache.put(bucketKey, String(current), 90); // a little past the minute, so a bucket never lingers once its minute has clearly passed
+    return current <= 30;
+  } catch (err) {
+    return true; // cache hiccup must never block a real person checking their own status
+  }
 }
 
 // action=checkin (POST) — payload: {password, code, formId}. Marks the
